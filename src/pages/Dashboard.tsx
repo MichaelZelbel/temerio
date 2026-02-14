@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -28,23 +30,34 @@ const defaultChecklist: ChecklistItem[] = [
   { id: "invite", label: "Invite your team", done: false, premiumOnly: true },
 ];
 
-function useIsPremium() {
-  const { role } = useAuth();
-  return role === "premium" || role === "premium_gift" || role === "admin";
-}
-
 const Dashboard = () => {
   const { user, profile, role } = useAuth();
-  const isPremium = useIsPremium();
+  const { isSubscribed, tier } = useSubscription();
+  const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const isPremium = isSubscribed;
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "there";
+
+  // Handle checkout success
+  useEffect(() => {
+    const checkout = searchParams.get("checkout");
+    if (checkout === "success") {
+      toast({ title: "🎉 Welcome to Pro!", description: "Your subscription is now active. Enjoy all premium features!" });
+      searchParams.delete("checkout");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, toast]);
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Welcome */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3>Welcome back, {displayName}</h3>
-          <p className="text-muted-foreground">Here's what's happening today.</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h3>Welcome back, {displayName}</h3>
+            <p className="text-muted-foreground">Here's what's happening today.</p>
+          </div>
+          {isPremium && <Badge variant="success" className="h-fit">Pro</Badge>}
         </div>
         <div className="flex gap-2 mt-3 sm:mt-0">
           <Button size="sm" asChild>
@@ -91,7 +104,8 @@ function StatsRow({ isPremium }: { isPremium: boolean }) {
             <p className="text-2xl font-display font-bold">{s.value}</p>
           </CardContent>
         </Card>
-      ))}
+      ))
+      }
 
       {!isPremium && (
         <Card className="border-primary/20 bg-primary/[0.03] sm:col-span-2 lg:col-span-1">
@@ -157,7 +171,7 @@ function QuickActions() {
             <span>Import</span>
           </Button>
           <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-            <Link to="/dashboard/analytics">
+            <Link to="/dashboard/library">
               <FolderOpen className="h-5 w-5" />
               <span>View Library</span>
             </Link>
