@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Upload, FileText, Loader2, Plus, PlayCircle, CheckCircle2, AlertCircle, Clock } from "lucide-react";
@@ -31,6 +32,25 @@ const statusIcon: Record<string, React.ReactNode> = {
   failed: <AlertCircle className="h-4 w-4 text-destructive" />,
 };
 
+const stubHeadlines: [string, string][] = [
+  ["Contract signed with third party", "past_fact"],
+  ["Medical examination completed", "past_fact"],
+  ["Employment start date recorded", "past_fact"],
+  ["Upcoming appointment scheduled", "future_plan"],
+  ["Insurance policy issued", "past_fact"],
+  ["Official registration filed", "unknown"],
+  ["Court hearing date set", "future_plan"],
+  ["Document notarisation completed", "past_fact"],
+];
+
+const stubSnippets = [
+  "The undersigned parties agree to the terms set forth herein.",
+  "Results of the examination were found to be within normal parameters.",
+  "Effective commencement date as stated in section 3.1 of the agreement.",
+  "Appointment confirmed for the date referenced above.",
+  "Policy number issued and coverage effective immediately.",
+];
+
 const UploadPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -42,11 +62,17 @@ const UploadPage = () => {
   const [loading, setLoading] = useState(true);
   const [addPersonOpen, setAddPersonOpen] = useState(false);
   const [newPersonName, setNewPersonName] = useState("");
+  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
     fetchData();
   }, [user]);
+
+  // Auto-select uploaded docs when documents change
+  useEffect(() => {
+    setSelectedDocs(new Set(documents.filter((d) => d.status === "uploaded").map((d) => d.id)));
+  }, [documents]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -108,18 +134,28 @@ const UploadPage = () => {
     fetchData();
   }, [user, selectedPerson, toast]);
 
+  const toggleDoc = (id: string) => {
+    setSelectedDocs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const handleStubExtract = async () => {
     if (!user) return;
-    const uploadedDocs = documents.filter((d) => d.status === "uploaded");
-    if (uploadedDocs.length === 0) {
-      toast({ title: "No uploaded documents to process" });
+    const docsToProcess = documents.filter((d) => selectedDocs.has(d.id) && d.status === "uploaded");
+    if (docsToProcess.length === 0) {
+      toast({ title: "No uploaded documents selected" });
       return;
     }
     setStubRunning(true);
 
-    for (const doc of uploadedDocs) {
+    for (const doc of docsToProcess) {
       // Set processing
       await supabase.from("documents").update({ status: "processing" }).eq("id", doc.id);
+      setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "processing" } : d));
 
       // Insert usage ledger row
       await supabase.from("ai_usage_ledger").insert({
@@ -129,26 +165,30 @@ const UploadPage = () => {
         document_id: doc.id,
       });
 
-      // Create 1-3 placeholder events
-      const numEvents = Math.floor(Math.random() * 3) + 1;
-      const headlines = [
-        "Contract signed with third party",
-        "Medical examination completed",
-        "Employment start date recorded",
-        "Insurance policy issued",
-        "Official registration filed",
-      ];
+      // Create 2-3 placeholder events
+      const numEvents = Math.floor(Math.random() * 2) + 2;
       for (let i = 0; i < numEvents; i++) {
-        const randomDate = new Date(2020 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+        const pick = stubHeadlines[Math.floor(Math.random() * stubHeadlines.length)];
+        const headline = pick[0];
+        const status = pick[1];
+        const randomDate = new Date(2020 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+        const importance = Math.floor(Math.random() * 5) + 2; // 2-6
+        const confTruth = Math.floor(Math.random() * 5) + 2;
+        const confDate = Math.floor(Math.random() * 5) + 2;
+        const isPotentialMajor = importance >= 6;
+        const mergeAuto = Math.random() > 0.8;
+
         const { data: event } = await supabase.from("events").insert({
           user_id: user.id,
-          headline_en: headlines[Math.floor(Math.random() * headlines.length)],
+          headline_en: headline,
           description_en: "Automatically extracted from uploaded document (stub data).",
           date_start: randomDate.toISOString().split("T")[0],
-          status: "unknown",
-          confidence_date: Math.floor(Math.random() * 4) + 2,
-          confidence_truth: Math.floor(Math.random() * 4) + 3,
-          importance: Math.floor(Math.random() * 5) + 4,
+          status,
+          confidence_date: confDate,
+          confidence_truth: confTruth,
+          importance,
+          is_potential_major: isPotentialMajor,
+          merge_auto: mergeAuto,
           source: "pdf",
         }).select().single();
 
@@ -159,7 +199,7 @@ const UploadPage = () => {
             event_id: event.id,
             document_id: doc.id,
             page_number: Math.floor(Math.random() * 10) + 1,
-            snippet_en: "Lorem ipsum snippet from the document representing extracted text.",
+            snippet_en: stubSnippets[Math.floor(Math.random() * stubSnippets.length)],
           });
 
           // Link participant if primary person set
@@ -170,26 +210,32 @@ const UploadPage = () => {
             });
           }
 
-          // Create review item for high-importance events
-          if (event.importance >= 7) {
-            await supabase.from("review_queue").insert({
-              user_id: user.id,
-              type: "suggestion",
-              event_id: event.id,
-              notes: "Auto-extracted event needs review.",
-            });
-          }
+          // Create review item based on type logic
+          let reviewType = "suggestion";
+          if (importance >= 8 || isPotentialMajor) reviewType = "major";
+          else if (mergeAuto) reviewType = "merge";
+
+          await supabase.from("review_queue").insert({
+            user_id: user.id,
+            type: reviewType,
+            event_id: event.id,
+            notes: `Auto-extracted event from "${doc.file_name}" needs review.`,
+          });
         }
       }
 
       // Set done
       await supabase.from("documents").update({ status: "done" }).eq("id", doc.id);
+      setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, status: "done" } : d));
     }
 
-    toast({ title: "Stub extraction complete", description: `Processed ${uploadedDocs.length} document(s).` });
+    toast({ title: "Stub extraction complete", description: `Processed ${docsToProcess.length} document(s).` });
     setStubRunning(false);
     fetchData();
   };
+
+  const personName = (id: string | null) => people.find((p) => p.id === id)?.name || "—";
+  const uploadedSelected = documents.filter((d) => selectedDocs.has(d.id) && d.status === "uploaded").length;
 
   return (
     <div className="space-y-6">
@@ -265,9 +311,9 @@ const UploadPage = () => {
             <CardTitle className="text-base">Ingestion Queue</CardTitle>
             <CardDescription>{documents.length} document(s)</CardDescription>
           </div>
-          <Button size="sm" onClick={handleStubExtract} disabled={stubRunning || documents.filter((d) => d.status === "uploaded").length === 0}>
+          <Button size="sm" onClick={handleStubExtract} disabled={stubRunning || uploadedSelected === 0}>
             {stubRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-            Run Stub Extraction
+            Run Stub Extraction ({uploadedSelected})
           </Button>
         </CardHeader>
         <CardContent>
@@ -279,8 +325,17 @@ const UploadPage = () => {
             <div className="space-y-2">
               {documents.map((doc) => (
                 <div key={doc.id} className="flex items-center gap-3 py-2 px-3 rounded-md bg-muted/50">
+                  {doc.status === "uploaded" && (
+                    <Checkbox
+                      checked={selectedDocs.has(doc.id)}
+                      onCheckedChange={() => toggleDoc(doc.id)}
+                    />
+                  )}
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm truncate flex-1">{doc.file_name}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm truncate block">{doc.file_name}</span>
+                    <span className="text-[10px] text-muted-foreground">{personName(doc.primary_person_id)}</span>
+                  </div>
                   <div className="flex items-center gap-1.5">
                     {statusIcon[doc.status]}
                     <Badge variant="outline" className="text-[10px]">{doc.status}</Badge>
