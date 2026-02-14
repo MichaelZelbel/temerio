@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2 } from "lucide-react";
+import { Plus, Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload } from "lucide-react";
 import { format } from "date-fns";
 
 interface Person {
@@ -310,10 +310,18 @@ const TimelinePage = () => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : groupedByYear.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
+      <div className="text-center py-20 text-muted-foreground space-y-4">
           <Calendar className="mx-auto h-12 w-12 mb-4 opacity-40" />
           <p className="text-lg font-medium">No events yet</p>
           <p className="text-sm">Upload documents or add events manually to build your timeline.</p>
+          <div className="flex justify-center gap-3 pt-2">
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Add your first event
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <a href="/upload"><Upload className="mr-2 h-4 w-4" /> Upload documents</a>
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="space-y-8">

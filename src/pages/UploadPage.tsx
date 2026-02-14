@@ -69,6 +69,13 @@ const UploadPage = () => {
     fetchData();
   }, [user]);
 
+  // Auto-select person if there's exactly one
+  useEffect(() => {
+    if (!selectedPerson && people.length === 1) {
+      setSelectedPerson(people[0].id);
+    }
+  }, [people, selectedPerson]);
+
   // Auto-select uploaded docs when documents change
   useEffect(() => {
     setSelectedDocs(new Set(documents.filter((d) => d.status === "uploaded").map((d) => d.id)));
