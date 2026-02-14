@@ -1,14 +1,17 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /docs
+Allow: /privacy
+Allow: /terms
+Allow: /cookies
+Allow: /impressum
+
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /settings
+Disallow: /auth
+Disallow: /wizard
+
+Sitemap: https://temerio-design-foundation.lovable.app/sitemap.xml

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { useSeo } from "@/hooks/useSeo";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -120,6 +121,7 @@ function TOC({ headings, activeId }: { headings: { id: string; label: string }[]
 }
 
 const Docs = () => {
+  useSeo({ title: "Documentation", description: "Learn how to use Temerio with guides, tutorials, and API reference.", path: "/docs" });
   const [searchParams] = useSearchParams();
   const slug = searchParams.get("page") || DEFAULT_SLUG;
   const page = getDocPage(slug);
