@@ -13,6 +13,23 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${d}`);
 };
 
+// Fire-and-forget admin notification (never blocks main flow)
+async function notifyAdmin(event: string, userId: string, userEmail: string, plan?: string) {
+  try {
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/admin-notify`;
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+      },
+      body: JSON.stringify({ event, userId, userEmail, plan }),
+    });
+  } catch (e) {
+    console.error("[CHECK-SUBSCRIPTION] Failed to send admin notification:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,6 +123,8 @@ serve(async (req) => {
           .update({ role: "premium" })
           .eq("user_id", user.id);
         logStep("Role updated to premium");
+        // Notify admin about new subscription
+        notifyAdmin("user_subscribed", user.id, user.email!, productId ?? undefined);
       }
     } else {
       logStep("No active subscription");
@@ -115,6 +134,8 @@ serve(async (req) => {
           .update({ role: "free" })
           .eq("user_id", user.id);
         logStep("Role reset to free");
+        // Notify admin about unsubscription
+        notifyAdmin("user_unsubscribed", user.id, user.email!);
       }
     }
 
