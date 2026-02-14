@@ -1,4 +1,5 @@
 import { Outlet, Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   LayoutDashboard, FolderOpen, Search, Bookmark, Users, Settings,
   ArrowUpRight, Shield,
@@ -47,6 +48,7 @@ export function DashboardLayout() {
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="h-5" />
             <div className="flex-1" />
+            <ThemeToggle />
             <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Back to site</Link>
           </header>
           <div className="flex-1 p-6">
