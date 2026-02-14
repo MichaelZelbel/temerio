@@ -47,10 +47,10 @@ export function Footer() {
           {/* Product */}
           <div className="space-y-3">
             <h6 className="text-sm font-semibold">Product</h6>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {productLinks.map((l) => (
                 <li key={l.to}>
-                  <Link to={l.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to={l.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center min-h-[44px] sm:min-h-0">
                     {l.label}
                   </Link>
                 </li>
@@ -61,10 +61,10 @@ export function Footer() {
           {/* Company */}
           <div className="space-y-3">
             <h6 className="text-sm font-semibold">Company</h6>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {companyLinks.map((l) => (
                 <li key={l.to}>
-                  <Link to={l.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to={l.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center min-h-[44px] sm:min-h-0">
                     {l.label}
                   </Link>
                 </li>
@@ -75,10 +75,10 @@ export function Footer() {
           {/* Legal */}
           <div className="space-y-3">
             <h6 className="text-sm font-semibold">Legal</h6>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {legalLinks.map((l) => (
                 <li key={l.to}>
-                  <Link to={l.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to={l.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center min-h-[44px] sm:min-h-0">
                     {l.label}
                   </Link>
                 </li>

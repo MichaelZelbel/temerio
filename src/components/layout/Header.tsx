@@ -127,21 +127,21 @@ export function Header() {
         <div className="md:hidden border-t bg-background animate-fade-in">
           <nav className="container py-4 space-y-1">
             {navLinks.map((link) => (
-              <NavLink key={link.to} to={link.to} end={link.to === "/"} className="block px-3 py-2.5 text-sm font-medium text-muted-foreground rounded-md transition-colors hover:text-foreground hover:bg-accent" activeClassName="text-foreground bg-accent">
+              <NavLink key={link.to} to={link.to} end={link.to === "/"} className="block px-3 py-3 min-h-[44px] text-sm font-medium text-muted-foreground rounded-md transition-colors hover:text-foreground hover:bg-accent flex items-center" activeClassName="text-foreground bg-accent">
                 {link.label}
               </NavLink>
             ))}
             <div className="pt-3 border-t mt-3 space-y-2">
               {isLoggedIn ? (
                 <>
-                  <Button variant="ghost" className="w-full justify-start gap-2" asChild><Link to="/dashboard"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link></Button>
-                  <Button variant="ghost" className="w-full justify-start gap-2" asChild><Link to="/dashboard/settings"><Settings className="h-4 w-4" /> Settings</Link></Button>
-                  <Button variant="ghost" className="w-full justify-start gap-2 text-destructive" onClick={signOut}><LogOut className="h-4 w-4" /> Sign Out</Button>
+                  <Button variant="ghost" className="w-full justify-start gap-2 min-h-[44px]" asChild><Link to="/dashboard"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link></Button>
+                  <Button variant="ghost" className="w-full justify-start gap-2 min-h-[44px]" asChild><Link to="/dashboard/settings"><Settings className="h-4 w-4" /> Settings</Link></Button>
+                  <Button variant="ghost" className="w-full justify-start gap-2 min-h-[44px] text-destructive" onClick={signOut}><LogOut className="h-4 w-4" /> Sign Out</Button>
                 </>
               ) : (
                 <>
-                  <Button variant="outline" className="w-full" asChild><Link to="/auth">Sign In</Link></Button>
-                  <Button className="w-full" asChild><Link to="/auth?tab=signup">Get Started</Link></Button>
+                  <Button variant="outline" className="w-full min-h-[44px]" asChild><Link to="/auth">Sign In</Link></Button>
+                  <Button className="w-full min-h-[44px]" asChild><Link to="/auth?tab=signup">Get Started</Link></Button>
                 </>
               )}
             </div>
