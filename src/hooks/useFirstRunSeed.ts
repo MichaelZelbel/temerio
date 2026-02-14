@@ -50,7 +50,7 @@ async function seed(userId: string, email: string | undefined, displayName: stri
       .insert({
         user_id: userId,
         date_start: today,
-        headline_en: "Account created",
+        headline_en: "Temerio account created",
         description_en: "Created a Temerio account.",
         status: "past_fact",
         confidence_date: 10,
