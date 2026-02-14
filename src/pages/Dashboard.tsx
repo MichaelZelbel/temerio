@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
@@ -72,7 +73,7 @@ const Dashboard = () => {
       {/* Main grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          <RecentActivity />
+          <ActivityFeed />
           <QuickActions />
         </div>
         <div className="space-y-6">
@@ -128,30 +129,7 @@ function StatsRow({ isPremium }: { isPremium: boolean }) {
   );
 }
 
-/* ─── Recent Activity ─── */
-function RecentActivity() {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
-          <CardDescription>Your latest actions</CardDescription>
-        </div>
-        <Button variant="ghost" size="sm" disabled>View All</Button>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
-            <Activity className="h-6 w-6 text-muted-foreground" />
-          </div>
-          <p className="font-medium">No activity yet</p>
-          <p className="text-sm text-muted-foreground mt-1">Your recent actions will appear here.</p>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
+/* RecentActivity replaced by ActivityFeed component */
 /* ─── Quick Actions ─── */
 function QuickActions() {
   return (

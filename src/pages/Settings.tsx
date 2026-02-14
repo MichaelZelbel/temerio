@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
+import { useLogActivity } from "@/hooks/useLogActivity";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,6 +170,7 @@ function SubscriptionTab() {
 function ProfileTab() {
   const { user, profile, signOut } = useAuth();
   const { toast } = useToast();
+  const { logActivity } = useLogActivity();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
@@ -225,6 +227,7 @@ function ProfileTab() {
         website: website.trim().slice(0, 255) || null,
       } as any).eq("id", user.id);
       if (error) throw error;
+      logActivity("profile_update", "profile", user.id, { fields: ["display_name", "bio", "website"] });
       toast({ title: "Profile saved" });
     } catch (err: any) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });

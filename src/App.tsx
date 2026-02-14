@@ -29,6 +29,7 @@ import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCreditSettings from "./pages/admin/AdminCreditSettings";
 import AdminSystem from "./pages/admin/AdminSystem";
+import ActivityPage from "./pages/ActivityPage";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
               <Route path="reports" element={<DashboardPlaceholder />} />
               <Route path="settings" element={<Settings />} />
               <Route path="notifications" element={<DashboardPlaceholder />} />
+              <Route path="activity" element={<ActivityPage />} />
             </Route>
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
