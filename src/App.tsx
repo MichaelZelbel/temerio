@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -40,6 +41,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <ErrorBoundary>
           <Routes>
             {/* Public pages */}
             <Route element={<PageLayout />}>
@@ -80,6 +82,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </ErrorBoundary>
           <CookieConsentBanner />
         </AuthProvider>
       </BrowserRouter>
