@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.ensure-token-allowance]
 verify_jwt = false
+
+[functions.admin-notify]
+verify_jwt = false

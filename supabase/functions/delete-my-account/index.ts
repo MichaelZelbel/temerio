@@ -1,5 +1,22 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Fire-and-forget admin notification
+async function notifyAdmin(event: string, userId: string, userEmail: string) {
+  try {
+    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/admin-notify`;
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+      },
+      body: JSON.stringify({ event, userId, userEmail }),
+    });
+  } catch (e) {
+    console.error("[DELETE-MY-ACCOUNT] Failed to send admin notification:", e);
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -95,6 +112,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Notify admin about account deletion (fire-and-forget)
+    notifyAdmin("user_deleted", userId, userEmail);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
