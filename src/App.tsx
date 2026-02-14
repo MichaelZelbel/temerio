@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,28 +12,40 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
-import Index from "./pages/Index";
-import Features from "./pages/Features";
-import Pricing from "./pages/Pricing";
-import Docs from "./pages/Docs";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import DashboardPlaceholder from "./pages/DashboardPlaceholder";
-import Library from "./pages/Library";
-import Settings from "./pages/Settings";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Cookies from "./pages/Cookies";
-import Impressum from "./pages/Impressum";
-import NotFound from "./pages/NotFound";
-import Wizard from "./pages/Wizard";
-import AdminOverview from "./pages/admin/AdminOverview";
-import AdminUsers from "./pages/admin/AdminUsers";
-import AdminCreditSettings from "./pages/admin/AdminCreditSettings";
-import AdminSystem from "./pages/admin/AdminSystem";
-import ActivityPage from "./pages/ActivityPage";
+import { PageLoader } from "@/components/LoadingStates";
 
-const queryClient = new QueryClient();
+// Lazy-loaded routes
+const Index = lazy(() => import("./pages/Index"));
+const Features = lazy(() => import("./pages/Features"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Docs = lazy(() => import("./pages/Docs"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardPlaceholder = lazy(() => import("./pages/DashboardPlaceholder"));
+const Library = lazy(() => import("./pages/Library"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Cookies = lazy(() => import("./pages/Cookies"));
+const Impressum = lazy(() => import("./pages/Impressum"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Wizard = lazy(() => import("./pages/Wizard"));
+const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminCreditSettings = lazy(() => import("./pages/admin/AdminCreditSettings"));
+const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"));
+const ActivityPage = lazy(() => import("./pages/ActivityPage"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,      // 5 min
+      gcTime: 10 * 60 * 1000,         // 10 min
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -42,6 +55,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public pages */}
             <Route element={<PageLayout />}>
@@ -82,6 +96,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </ErrorBoundary>
           <CookieConsentBanner />
         </AuthProvider>
