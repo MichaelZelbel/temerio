@@ -29,12 +29,25 @@ async function seed(userId: string, email: string | undefined, displayName: stri
 
   if (peopleCount === 0) {
     const name = displayName || (email ? email.split("@")[0] : "Me");
-    const { data } = await supabase
+    // Use upsert-like approach: insert only if no "Self" person exists yet
+    // to prevent race-condition duplicates
+    const { data: existing } = await supabase
       .from("people")
-      .insert({ user_id: userId, name, relationship_label: "Self" })
       .select("id")
-      .single();
-    if (data) defaultPersonId = data.id;
+      .eq("user_id", userId)
+      .eq("relationship_label", "Self")
+      .maybeSingle();
+
+    if (existing) {
+      defaultPersonId = existing.id;
+    } else {
+      const { data } = await supabase
+        .from("people")
+        .insert({ user_id: userId, name, relationship_label: "Self" })
+        .select("id")
+        .single();
+      if (data) defaultPersonId = data.id;
+    }
   }
 
   // 2) Check if user already has any events
