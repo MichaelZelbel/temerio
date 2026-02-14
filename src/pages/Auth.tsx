@@ -127,7 +127,7 @@ function SignInForm({
       <OAuthButtons onOAuth={onOAuth} />
       <div className="space-y-2">
         <Label htmlFor="signin-email">Email</Label>
-        <Input id="signin-email" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+        <Input id="signin-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
       </div>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -230,7 +230,7 @@ function SignUpForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="signup-email">Email</Label>
-        <Input id="signup-email" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={255} />
+        <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={255} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="signup-password">Password</Label>
