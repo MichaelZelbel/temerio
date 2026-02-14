@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +11,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Camera, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Loader2, Camera, Eye, EyeOff, AlertTriangle, CreditCard, ArrowUpRight, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 function passwordStrength(pw: string) {
   let score = 0;
@@ -47,16 +43,119 @@ const Settings = () => {
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="danger">Danger Zone</TabsTrigger>
         </TabsList>
         <TabsContent value="profile"><ProfileTab /></TabsContent>
+        <TabsContent value="subscription"><SubscriptionTab /></TabsContent>
         <TabsContent value="account"><AccountTab /></TabsContent>
         <TabsContent value="danger"><DangerTab /></TabsContent>
       </Tabs>
     </div>
   );
 };
+
+/* ─── Subscription Tab ─── */
+function SubscriptionTab() {
+  const { isSubscribed, tier, subscriptionEnd, isLoading, checkSubscription } = useSubscription();
+  const { toast } = useToast();
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      toast({ title: "Failed to open portal", description: err.message, variant: "destructive" });
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await checkSubscription();
+    setRefreshing(false);
+    toast({ title: "Subscription status refreshed" });
+  };
+
+  const planLabel = tier === "admin" ? "Admin" : tier === "premium_gift" ? "Gift" : tier === "pro" ? "Pro" : "Free";
+  const formattedEnd = subscriptionEnd
+    ? new Date(subscriptionEnd).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Current Plan
+          </CardTitle>
+          <CardDescription>Your subscription details and billing information.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <Badge variant={isSubscribed ? "success" : "secondary"} className="text-sm px-3 py-1">
+                  {planLabel}
+                </Badge>
+                {isSubscribed && formattedEnd && (
+                  <span className="text-sm text-muted-foreground">
+                    Renews {formattedEnd}
+                  </span>
+                )}
+              </div>
+
+              <Separator />
+
+              {isSubscribed ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Manage your subscription, update payment method, or cancel anytime via the Stripe Customer Portal.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button onClick={handleManageSubscription} disabled={portalLoading} variant="outline">
+                      {portalLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
+                      Manage Subscription
+                    </Button>
+                    <Button onClick={handleRefresh} disabled={refreshing} variant="ghost" size="sm">
+                      {refreshing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Refresh
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    You're on the free plan. Upgrade to Pro to unlock unlimited items, advanced AI, team features, and more.
+                  </p>
+                  <Button asChild>
+                    <Link to="/pricing">
+                      <ArrowUpRight className="mr-2 h-4 w-4" />
+                      Upgrade to Pro
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 /* ─── Profile Tab ─── */
 function ProfileTab() {
@@ -77,7 +176,6 @@ function ProfileTab() {
   const handleAvatarUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-
     const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!validTypes.includes(file.type)) {
       toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, GIF, or WebP image.", variant: "destructive" });
@@ -87,24 +185,18 @@ function ProfileTab() {
       toast({ title: "File too large", description: "Maximum file size is 2MB.", variant: "destructive" });
       return;
     }
-
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
       const filePath = `${user.id}/avatar.${ext}`;
-
-      // Delete old avatar if exists
       if (avatarUrl) {
         const oldPath = avatarUrl.split("/avatars/")[1];
         if (oldPath) await supabase.storage.from("avatars").remove([oldPath]);
       }
-
       const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
-
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(filePath);
       const newUrl = `${publicUrl}?t=${Date.now()}`;
-
       await supabase.from("profiles").update({ avatar_url: newUrl } as any).eq("id", user.id);
       setAvatarUrl(newUrl);
       toast({ title: "Avatar updated" });
@@ -140,7 +232,6 @@ function ProfileTab() {
         <CardDescription>Your public profile information.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Avatar */}
         <div className="flex items-center gap-6">
           <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
             <Avatar className="h-20 w-20">
@@ -157,10 +248,7 @@ function ProfileTab() {
             <p className="text-xs text-muted-foreground">JPG, PNG, GIF or WebP. Max 2MB.</p>
           </div>
         </div>
-
         <Separator />
-
-        {/* Fields */}
         <div className="space-y-4 max-w-md">
           <div className="space-y-2">
             <Label htmlFor="display-name">Display Name</Label>
@@ -189,13 +277,11 @@ function ProfileTab() {
 function AccountTab() {
   const { user } = useAuth();
   const { toast } = useToast();
-
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const strength = useMemo(() => passwordStrength(newPw), [newPw]);
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -210,11 +296,7 @@ function AccountTab() {
     }
     setLoading(true);
     try {
-      // Verify current password
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: user?.email || "",
-        password: currentPw,
-      });
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email: user?.email || "", password: currentPw });
       if (signInErr) {
         toast({ title: "Current password is incorrect", variant: "destructive" });
         return;
@@ -222,9 +304,7 @@ function AccountTab() {
       const { error } = await supabase.auth.updateUser({ password: newPw });
       if (error) throw error;
       toast({ title: "Password updated" });
-      setCurrentPw("");
-      setNewPw("");
-      setConfirmPw("");
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
     } catch (err: any) {
       toast({ title: "Failed to update password", description: err.message, variant: "destructive" });
     } finally {
@@ -235,20 +315,11 @@ function AccountTab() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Email</CardTitle>
-          <CardDescription>Your account email address.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Input value={user?.email || ""} disabled className="max-w-md" />
-        </CardContent>
+        <CardHeader><CardTitle>Email</CardTitle><CardDescription>Your account email address.</CardDescription></CardHeader>
+        <CardContent><Input value={user?.email || ""} disabled className="max-w-md" /></CardContent>
       </Card>
-
       <Card>
-        <CardHeader>
-          <CardTitle>Change Password</CardTitle>
-          <CardDescription>Update your account password.</CardDescription>
-        </CardHeader>
+        <CardHeader><CardTitle>Change Password</CardTitle><CardDescription>Update your account password.</CardDescription></CardHeader>
         <CardContent>
           <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
             <div className="space-y-2">
@@ -294,7 +365,6 @@ function DangerTab() {
   const { user, session, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
@@ -309,17 +379,10 @@ function DangerTab() {
       toast({ title: "Password is required", variant: "destructive" });
       return;
     }
-
     setLoading(true);
     try {
-      const res = await supabase.functions.invoke("delete-my-account", {
-        body: { password },
-      });
-
-      if (res.error || res.data?.error) {
-        throw new Error(res.data?.error || res.error?.message || "Failed to delete account");
-      }
-
+      const res = await supabase.functions.invoke("delete-my-account", { body: { password } });
+      if (res.error || res.data?.error) throw new Error(res.data?.error || res.error?.message || "Failed to delete account");
       toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
       await signOut();
       navigate("/");
@@ -333,24 +396,15 @@ function DangerTab() {
   return (
     <Card className="border-destructive/30">
       <CardHeader>
-        <CardTitle className="text-destructive flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5" /> Danger Zone
-        </CardTitle>
-        <CardDescription>
-          Irreversible and destructive actions.
-        </CardDescription>
+        <CardTitle className="text-destructive flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Danger Zone</CardTitle>
+        <CardDescription>Irreversible and destructive actions.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 space-y-3">
           <h5 className="text-destructive">Delete Account</h5>
-          <p className="text-sm text-muted-foreground">
-            Permanently delete your account and all associated data. This includes your profile, settings, uploaded files, and all other data. This action cannot be undone.
-          </p>
-
+          <p className="text-sm text-muted-foreground">Permanently delete your account and all associated data. This action cannot be undone.</p>
           <AlertDialog open={open} onOpenChange={setOpen}>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Delete My Account</Button>
-            </AlertDialogTrigger>
+            <AlertDialogTrigger asChild><Button variant="destructive">Delete My Account</Button></AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-destructive">Are you absolutely sure?</AlertDialogTitle>
@@ -365,27 +419,19 @@ function DangerTab() {
                   <p className="font-medium text-foreground">This action cannot be reversed.</p>
                 </AlertDialogDescription>
               </AlertDialogHeader>
-
               <div className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="delete-pw">Enter your password</Label>
                   <Input id="delete-pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="delete-confirm">
-                    Type <span className="font-mono font-bold text-destructive">DELETE MY ACCOUNT</span> to confirm
-                  </Label>
+                  <Label htmlFor="delete-confirm">Type <span className="font-mono font-bold text-destructive">DELETE MY ACCOUNT</span> to confirm</Label>
                   <Input id="delete-confirm" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder="DELETE MY ACCOUNT" />
                 </div>
               </div>
-
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => { setPassword(""); setConfirmation(""); }}>Cancel</AlertDialogCancel>
-                <Button
-                  variant="destructive"
-                  disabled={loading || confirmation !== "DELETE MY ACCOUNT" || !password}
-                  onClick={handleDelete}
-                >
+                <Button variant="destructive" disabled={loading || confirmation !== "DELETE MY ACCOUNT" || !password} onClick={handleDelete}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Permanently Delete Account
                 </Button>

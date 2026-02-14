@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -16,8 +17,8 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 
 function useIsPremium() {
-  const { role } = useAuth();
-  return role === "premium" || role === "premium_gift" || role === "admin";
+  const { isSubscribed } = useSubscription();
+  return isSubscribed;
 }
 
 const mainNav = [

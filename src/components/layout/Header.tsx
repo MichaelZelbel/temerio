@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, ChevronDown, Settings, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, ChevronDown, Settings, LogOut, LayoutDashboard, Sparkles, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -13,6 +13,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/hooks/useSubscription";
+import { Badge } from "@/components/ui/badge";
 
 const navLinks = [
   { label: "Home", to: "/" },
@@ -23,6 +25,7 @@ const navLinks = [
 
 export function Header() {
   const { user, profile, signOut } = useAuth();
+  const { isSubscribed } = useSubscription();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
@@ -73,17 +76,24 @@ export function Header() {
 
         <div className="hidden md:flex items-center gap-2">
           {isLoggedIn ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-2 pl-2 pr-3">
-                  <Avatar className="h-7 w-7">
-                    {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium">{displayName}</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <>
+              {!isSubscribed && (
+                <Button variant="outline" size="sm" asChild className="border-primary/30 text-primary hover:bg-primary/5">
+                  <Link to="/pricing"><ArrowUpRight className="h-3.5 w-3.5 mr-1" /> Upgrade</Link>
                 </Button>
-              </DropdownMenuTrigger>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="gap-2 pl-2 pr-3">
+                    <Avatar className="h-7 w-7">
+                      {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">{displayName}</span>
+                    {isSubscribed && <Badge variant="success" className="text-2xs">Pro</Badge>}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard" className="flex items-center gap-2"><LayoutDashboard className="h-4 w-4" /> Dashboard</Link>
@@ -96,7 +106,8 @@ export function Header() {
                   <LogOut className="h-4 w-4" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+              </DropdownMenu>
+            </>
           ) : (
             <>
               <Button variant="ghost" size="sm" asChild><Link to="/auth">Sign In</Link></Button>
