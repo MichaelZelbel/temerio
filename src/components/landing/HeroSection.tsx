@@ -41,9 +41,9 @@ export function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Build Amazing Things{" "}
+            Turn Documents Into a{" "}
             <span className="bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">
-              with AI
+              Structured Timeline
             </span>
           </motion.h1>
 
@@ -53,8 +53,8 @@ export function HeroSection() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            The all-in-one platform that helps teams ship faster with AI-powered
-            insights, seamless collaboration, and enterprise-grade security.
+            Temerio extracts key events from your documents and organizes them into a
+            clear, searchable timeline — built for clarity and perspective.
           </motion.p>
 
           <motion.div
@@ -82,11 +82,11 @@ export function HeroSection() {
           >
             <span className="flex items-center gap-1.5">
               <Shield className="h-4 w-4 text-success" />
-              No credit card required
+              Free to start
             </span>
             <span className="flex items-center gap-1.5">
               <Zap className="h-4 w-4 text-warning" />
-              14-day free trial
+              AI-powered extraction
             </span>
           </motion.div>
         </div>

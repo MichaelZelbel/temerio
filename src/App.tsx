@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
@@ -20,9 +20,11 @@ const Features = lazy(() => import("./pages/Features"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Docs = lazy(() => import("./pages/Docs"));
 const Auth = lazy(() => import("./pages/Auth"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const DashboardPlaceholder = lazy(() => import("./pages/DashboardPlaceholder"));
-const Library = lazy(() => import("./pages/Library"));
+const TimelinePage = lazy(() => import("./pages/TimelinePage"));
+const UploadPage = lazy(() => import("./pages/UploadPage"));
+const ReviewPage = lazy(() => import("./pages/ReviewPage"));
+const PeoplePage = lazy(() => import("./pages/PeoplePage"));
+const UsagePage = lazy(() => import("./pages/UsagePage"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
@@ -34,13 +36,12 @@ const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminCreditSettings = lazy(() => import("./pages/admin/AdminCreditSettings"));
 const AdminSystem = lazy(() => import("./pages/admin/AdminSystem"));
-const ActivityPage = lazy(() => import("./pages/ActivityPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,      // 5 min
-      gcTime: 10 * 60 * 1000,         // 10 min
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       refetchOnWindowFocus: false,
       retry: 1,
     },
@@ -81,17 +82,19 @@ const App = () => (
               <Route path="system" element={<AdminSystem />} />
             </Route>
 
-            {/* Protected dashboard */}
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-              <Route index element={<Dashboard />} />
-              <Route path="library" element={<Library />} />
-              <Route path="analytics" element={<DashboardPlaceholder />} />
-              <Route path="customers" element={<DashboardPlaceholder />} />
-              <Route path="reports" element={<DashboardPlaceholder />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="notifications" element={<DashboardPlaceholder />} />
-              <Route path="activity" element={<ActivityPage />} />
+            {/* Protected app routes with sidebar */}
+            <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+              <Route path="/timeline" element={<TimelinePage />} />
+              <Route path="/upload" element={<UploadPage />} />
+              <Route path="/review" element={<ReviewPage />} />
+              <Route path="/people" element={<PeoplePage />} />
+              <Route path="/usage" element={<UsagePage />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
+
+            {/* Legacy dashboard redirect */}
+            <Route path="/dashboard" element={<Navigate to="/timeline" replace />} />
+            <Route path="/dashboard/*" element={<Navigate to="/timeline" replace />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

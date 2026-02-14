@@ -1,41 +1,30 @@
 import { Outlet, Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
-  LayoutDashboard, FolderOpen, Search, Bookmark, Users, Settings,
-  ArrowUpRight, Shield,
+  Calendar, Upload, ClipboardCheck, Users, Zap, Settings, ArrowUpRight, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useSubscription } from "@/hooks/useSubscription";
-import { CreditsDisplay } from "@/components/settings/CreditsDisplay";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarProvider, SidebarTrigger, SidebarInset,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 
-function useIsPremium() {
-  const { isSubscribed } = useSubscription();
-  return isSubscribed;
-}
-
 const mainNav = [
-  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, end: true },
-  { label: "Library", to: "/dashboard/library", icon: FolderOpen },
-  { label: "Discover", to: "/dashboard/customers", icon: Search },
-  { label: "Collections", to: "/dashboard/reports", icon: Bookmark },
-];
-
-const premiumNav = [
-  { label: "Team", to: "/dashboard/notifications", icon: Users },
+  { label: "Timeline", to: "/timeline", icon: Calendar },
+  { label: "Upload", to: "/upload", icon: Upload },
+  { label: "Review", to: "/review", icon: ClipboardCheck },
+  { label: "People", to: "/people", icon: Users },
+  { label: "Usage", to: "/usage", icon: Zap },
 ];
 
 const settingsNav = [
-  { label: "Settings", to: "/dashboard/settings", icon: Settings },
+  { label: "Settings", to: "/settings", icon: Settings },
 ];
 
 export function DashboardLayout() {
@@ -62,14 +51,14 @@ export function DashboardLayout() {
 
 function DashboardSidebar() {
   const { user, profile, role } = useAuth();
-  const isPremium = useIsPremium();
+  const { isSubscribed } = useSubscription();
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <Link to="/dashboard" className="flex items-center gap-2">
+        <Link to="/timeline" className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <span className="text-sm font-bold text-primary-foreground">T</span>
           </div>
@@ -79,20 +68,10 @@ function DashboardSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel>App</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNav.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton asChild tooltip={item.label}>
-                    <NavLink to={item.to} end={item.end} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              {isPremium && premiumNav.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton asChild tooltip={item.label}>
                     <NavLink to={item.to} className="hover:bg-sidebar-accent" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
@@ -107,7 +86,7 @@ function DashboardSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsNav.map((item) => (
@@ -124,32 +103,26 @@ function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Upgrade badge for free users */}
-        {!isPremium && (
+        {!isSubscribed && (
           <div className="px-3 mt-2">
             <Button variant="outline" size="sm" className="w-full justify-start gap-2 border-primary/30 text-primary hover:bg-primary/5" asChild>
               <Link to="/pricing">
                 <ArrowUpRight className="h-3.5 w-3.5" />
-                <span>Upgrade to Pro</span>
+                <span>Upgrade</span>
               </Link>
             </Button>
           </div>
         )}
-        {/* Admin link */}
         {role === "admin" && (
           <div className="px-3 mt-2">
             <Button variant="outline" size="sm" className="w-full justify-start gap-2 border-destructive/30 text-destructive hover:bg-destructive/5" asChild>
               <Link to="/admin">
                 <Shield className="h-3.5 w-3.5" />
-                <span>Admin Panel</span>
+                <span>Admin</span>
               </Link>
             </Button>
           </div>
         )}
-        {/* AI Credits widget */}
-        <div className="px-1 mt-2 border-t pt-2">
-          <CreditsDisplay compact />
-        </div>
       </SidebarContent>
 
       <div className="mt-auto border-t p-3">
