@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import {
   LayoutDashboard, FolderOpen, Search, Bookmark, Users, Settings,
-  ArrowUpRight,
+  ArrowUpRight, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -59,7 +59,7 @@ export function DashboardLayout() {
 }
 
 function DashboardSidebar() {
-  const { user, profile } = useAuth();
+  const { user, profile, role } = useAuth();
   const isPremium = useIsPremium();
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "User";
   const initials = displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -129,6 +129,17 @@ function DashboardSidebar() {
               <Link to="/pricing">
                 <ArrowUpRight className="h-3.5 w-3.5" />
                 <span>Upgrade to Pro</span>
+              </Link>
+            </Button>
+          </div>
+        )}
+        {/* Admin link */}
+        {role === "admin" && (
+          <div className="px-3 mt-2">
+            <Button variant="outline" size="sm" className="w-full justify-start gap-2 border-destructive/30 text-destructive hover:bg-destructive/5" asChild>
+              <Link to="/admin">
+                <Shield className="h-3.5 w-3.5" />
+                <span>Admin Panel</span>
               </Link>
             </Button>
           </div>
