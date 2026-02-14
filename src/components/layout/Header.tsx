@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, ChevronDown, Settings, LogOut, LayoutDashboard, Sparkles, ArrowUpRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -75,6 +76,7 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-2">
+          <ThemeToggle />
           {isLoggedIn ? (
             <>
               {!isSubscribed && (
