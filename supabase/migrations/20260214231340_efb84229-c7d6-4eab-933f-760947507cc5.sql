@@ -1,0 +1,1 @@
+UPDATE public.events SET headline_en = 'Temerio account created' WHERE headline_en = 'Account created' AND source = 'manual';
