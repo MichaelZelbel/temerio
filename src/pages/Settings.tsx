@@ -43,13 +43,15 @@ const Settings = () => {
         <p className="text-muted-foreground">Manage your account and preferences.</p>
       </div>
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
-          <TabsTrigger value="ai-credits">AI Credits</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="danger">Danger Zone</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-1 px-1">
+          <TabsList className="w-max min-w-full sm:w-auto">
+            <TabsTrigger value="profile" className="min-h-[44px] sm:min-h-0">Profile</TabsTrigger>
+            <TabsTrigger value="subscription" className="min-h-[44px] sm:min-h-0">Subscription</TabsTrigger>
+            <TabsTrigger value="ai-credits" className="min-h-[44px] sm:min-h-0">AI Credits</TabsTrigger>
+            <TabsTrigger value="account" className="min-h-[44px] sm:min-h-0">Account</TabsTrigger>
+            <TabsTrigger value="danger" className="min-h-[44px] sm:min-h-0">Danger Zone</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="profile"><ProfileTab /></TabsContent>
         <TabsContent value="subscription"><SubscriptionTab /></TabsContent>
         <TabsContent value="ai-credits"><AICreditsTab /></TabsContent>
