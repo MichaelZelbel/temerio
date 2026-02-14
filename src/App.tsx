@@ -5,8 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import Index from "./pages/Index";
 import Features from "./pages/Features";
@@ -23,6 +25,10 @@ import Cookies from "./pages/Cookies";
 import Impressum from "./pages/Impressum";
 import NotFound from "./pages/NotFound";
 import Wizard from "./pages/Wizard";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCreditSettings from "./pages/admin/AdminCreditSettings";
+import AdminSystem from "./pages/admin/AdminSystem";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +55,14 @@ const App = () => (
             {/* Auth & Onboarding */}
             <Route path="/auth" element={<Auth />} />
             <Route path="/wizard" element={<ProtectedRoute><Wizard /></ProtectedRoute>} />
+
+            {/* Admin panel */}
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+              <Route index element={<AdminOverview />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="credits" element={<AdminCreditSettings />} />
+              <Route path="system" element={<AdminSystem />} />
+            </Route>
 
             {/* Protected dashboard */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
