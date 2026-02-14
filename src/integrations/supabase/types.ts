@@ -101,6 +101,232 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage_ledger: {
+        Row: {
+          action: string
+          created_at: string
+          credits_used: number
+          document_id: string | null
+          id: string
+          meta: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          credits_used?: number
+          document_id?: string | null
+          id?: string
+          meta?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          credits_used?: number
+          document_id?: string | null
+          id?: string
+          meta?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_ledger_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          error: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          primary_person_id: string | null
+          source_language: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          file_name: string
+          id?: string
+          mime_type?: string
+          primary_person_id?: string | null
+          source_language?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          primary_person_id?: string | null
+          source_language?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_primary_person_id_fkey"
+            columns: ["primary_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_participants: {
+        Row: {
+          event_id: string
+          person_id: string
+        }
+        Insert: {
+          event_id: string
+          person_id: string
+        }
+        Update: {
+          event_id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_provenance: {
+        Row: {
+          created_at: string
+          document_id: string
+          event_id: string
+          id: string
+          language: string | null
+          page_number: number | null
+          snippet_en: string | null
+          snippet_original: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          event_id: string
+          id?: string
+          language?: string | null
+          page_number?: number | null
+          snippet_en?: string | null
+          snippet_original?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          event_id?: string
+          id?: string
+          language?: string | null
+          page_number?: number | null
+          snippet_en?: string | null
+          snippet_original?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_provenance_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_provenance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          confidence_date: number
+          confidence_truth: number
+          created_at: string
+          date_end: string | null
+          date_start: string
+          description_en: string | null
+          headline_en: string
+          id: string
+          importance: number
+          is_potential_major: boolean
+          merge_auto: boolean
+          source: string
+          status: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          confidence_date?: number
+          confidence_truth?: number
+          created_at?: string
+          date_end?: string | null
+          date_start: string
+          description_en?: string | null
+          headline_en: string
+          id?: string
+          importance?: number
+          is_potential_major?: boolean
+          merge_auto?: boolean
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          confidence_date?: number
+          confidence_truth?: number
+          created_at?: string
+          date_end?: string | null
+          date_start?: string
+          description_en?: string | null
+          headline_en?: string
+          id?: string
+          importance?: number
+          is_potential_major?: boolean
+          merge_auto?: boolean
+          source?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       llm_usage_events: {
         Row: {
           completion_tokens: number
@@ -146,6 +372,33 @@ export type Database = {
         }
         Relationships: []
       }
+      people: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          relationship_label: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          relationship_label?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          relationship_label?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -175,6 +428,47 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      review_queue: {
+        Row: {
+          created_at: string
+          event_id: string | null
+          id: string
+          notes: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_queue_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
