@@ -39,7 +39,7 @@ export function Footer() {
               The modern platform for teams that build smarter, faster, and together.
             </p>
             <div className="flex gap-2 max-w-xs">
-              <Input placeholder="you@company.com" type="email" className="h-9 text-sm" />
+              <Input placeholder="your@email.com" type="email" className="h-9 text-sm" />
               <Button size="sm" className="shrink-0">Subscribe</Button>
             </div>
           </div>
