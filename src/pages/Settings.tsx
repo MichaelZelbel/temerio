@@ -20,6 +20,7 @@ import {
 import { Loader2, Camera, Eye, EyeOff, AlertTriangle, CreditCard, ArrowUpRight, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { CreditsDisplay } from "@/components/settings/CreditsDisplay";
 
 function passwordStrength(pw: string) {
   let score = 0;
@@ -44,17 +45,24 @@ const Settings = () => {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="ai-credits">AI Credits</TabsTrigger>
           <TabsTrigger value="account">Account</TabsTrigger>
           <TabsTrigger value="danger">Danger Zone</TabsTrigger>
         </TabsList>
         <TabsContent value="profile"><ProfileTab /></TabsContent>
         <TabsContent value="subscription"><SubscriptionTab /></TabsContent>
+        <TabsContent value="ai-credits"><AICreditsTab /></TabsContent>
         <TabsContent value="account"><AccountTab /></TabsContent>
         <TabsContent value="danger"><DangerTab /></TabsContent>
       </Tabs>
     </div>
   );
 };
+
+/* ─── AI Credits Tab ─── */
+function AICreditsTab() {
+  return <CreditsDisplay />;
+}
 
 /* ─── Subscription Tab ─── */
 function SubscriptionTab() {

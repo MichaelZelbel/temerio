@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useSubscription } from "@/hooks/useSubscription";
+import { CreditsDisplay } from "@/components/settings/CreditsDisplay";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -132,6 +133,10 @@ function DashboardSidebar() {
             </Button>
           </div>
         )}
+        {/* AI Credits widget */}
+        <div className="px-1 mt-2 border-t pt-2">
+          <CreditsDisplay compact />
+        </div>
       </SidebarContent>
 
       <div className="mt-auto border-t p-3">
