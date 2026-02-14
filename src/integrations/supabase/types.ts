@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_events: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          item_id: string | null
+          item_type: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          item_type?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       ai_allowance_periods: {
         Row: {
           created_at: string
