@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useSeo } from "@/hooks/useSeo";
 import { ActivityFeed } from "@/components/activity/ActivityFeed";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -32,6 +33,7 @@ const defaultChecklist: ChecklistItem[] = [
 ];
 
 const Dashboard = () => {
+  useSeo({ title: "Dashboard", path: "/dashboard" });
   const { user, profile, role } = useAuth();
   const { isSubscribed, tier } = useSubscription();
   const { toast } = useToast();

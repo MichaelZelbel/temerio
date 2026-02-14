@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useSeo } from "@/hooks/useSeo";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ function CellValue({ value }: { value: boolean | string }) {
 }
 
 const Pricing = () => {
+  useSeo({ title: "Pricing", description: "Simple, transparent pricing for Temerio. Free tier included, upgrade anytime.", path: "/pricing" });
   const [yearly, setYearly] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
