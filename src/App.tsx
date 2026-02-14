@@ -15,6 +15,7 @@ import Docs from "./pages/Docs";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardPlaceholder from "./pages/DashboardPlaceholder";
+import Library from "./pages/Library";
 import Settings from "./pages/Settings";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -52,6 +53,7 @@ const App = () => (
             {/* Protected dashboard */}
             <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
+              <Route path="library" element={<Library />} />
               <Route path="analytics" element={<DashboardPlaceholder />} />
               <Route path="customers" element={<DashboardPlaceholder />} />
               <Route path="reports" element={<DashboardPlaceholder />} />

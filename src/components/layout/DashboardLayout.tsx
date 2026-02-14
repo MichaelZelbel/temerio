@@ -1,7 +1,7 @@
 import { Outlet, Link } from "react-router-dom";
 import {
-  LayoutDashboard, BarChart3, Search, Bookmark, Users, Settings,
-  Bell, ArrowUpRight,
+  LayoutDashboard, FolderOpen, Search, Bookmark, Users, Settings,
+  ArrowUpRight,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -22,7 +22,7 @@ function useIsPremium() {
 
 const mainNav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, end: true },
-  { label: "Library", to: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Library", to: "/dashboard/library", icon: FolderOpen },
   { label: "Discover", to: "/dashboard/customers", icon: Search },
   { label: "Collections", to: "/dashboard/reports", icon: Bookmark },
 ];
