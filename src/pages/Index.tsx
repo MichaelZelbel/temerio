@@ -14,22 +14,8 @@ import { Separator } from "@/components/ui/separator";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex h-16 items-center justify-between">
-          <span className="font-display text-xl font-bold tracking-tight text-foreground">
-            Temerio
-          </span>
-          <nav className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">Docs</Button>
-            <Button variant="ghost" size="sm">Pricing</Button>
-            <Button size="sm">Get Started</Button>
-          </nav>
-        </div>
-      </header>
-
-      <main className="container py-16 space-y-20">
+    <div className="bg-background">
+      <div className="container py-16 space-y-20">
         {/* Hero */}
         <section className="text-center space-y-6 animate-fade-in">
           <Badge variant="info" className="mx-auto">Design System v1.0</Badge>
@@ -255,14 +241,7 @@ const Index = () => {
             ))}
           </div>
         </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t py-8 mt-16">
-        <div className="container text-center text-sm text-muted-foreground">
-          Temerio Design System — Built for modern B2B SaaS
-        </div>
-      </footer>
+      </div>
     </div>
   );
 };
