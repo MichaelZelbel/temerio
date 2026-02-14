@@ -124,10 +124,13 @@ const PeoplePage = () => {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : people.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
+      <div className="text-center py-16 text-muted-foreground space-y-3">
           <Users className="mx-auto h-12 w-12 mb-4 opacity-40" />
           <p className="text-lg font-medium">No people yet</p>
-          <p className="text-sm">Add people to associate them with documents and events.</p>
+          <p className="text-sm">Your default person will be created automatically when you sign in.</p>
+          <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Add a person manually
+          </Button>
         </div>
       ) : (
         <div className="grid gap-3">

@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useFirstRunSeed } from "@/hooks/useFirstRunSeed";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -28,6 +29,7 @@ const settingsNav = [
 ];
 
 export function DashboardLayout() {
+  useFirstRunSeed();
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
