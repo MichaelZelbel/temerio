@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface Person {
@@ -57,6 +58,7 @@ const TimelinePage = () => {
   const { toast } = useToast();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
+  const [participantMap, setParticipantMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -64,7 +66,7 @@ const TimelinePage = () => {
   const [addOpen, setAddOpen] = useState(false);
 
   // Filters
-  const [minImportance, setMinImportance] = useState(8);
+  const [minImportance, setMinImportance] = useState(1);
   const [minConfTruth, setMinConfTruth] = useState(0);
   const [minConfDate, setMinConfDate] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -86,12 +88,21 @@ const TimelinePage = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [eventsRes, peopleRes] = await Promise.all([
+    const [eventsRes, peopleRes, partsRes] = await Promise.all([
       supabase.from("events").select("*").eq("user_id", user.id).order("date_start", { ascending: false }),
       supabase.from("people").select("*").eq("user_id", user.id),
+      supabase.from("event_participants").select("event_id, person_id"),
     ]);
     if (eventsRes.data) setEvents(eventsRes.data);
     if (peopleRes.data) setPeople(peopleRes.data);
+
+    // Build event_id -> person_id[] map
+    const map: Record<string, string[]> = {};
+    for (const row of partsRes.data || []) {
+      if (!map[row.event_id]) map[row.event_id] = [];
+      map[row.event_id].push(row.person_id);
+    }
+    setParticipantMap(map);
     setLoading(false);
   };
 
@@ -101,9 +112,13 @@ const TimelinePage = () => {
       if (e.confidence_truth < minConfTruth) return false;
       if (e.confidence_date < minConfDate) return false;
       if (statusFilter.length > 0 && !statusFilter.includes(e.status)) return false;
+      if (personFilter.length > 0) {
+        const eventPersonIds = participantMap[e.id] || [];
+        if (!personFilter.some((pid) => eventPersonIds.includes(pid))) return false;
+      }
       return true;
     });
-  }, [events, minImportance, minConfTruth, minConfDate, statusFilter]);
+  }, [events, minImportance, minConfTruth, minConfDate, statusFilter, personFilter, participantMap]);
 
   const groupedByYear = useMemo(() => {
     const groups: Record<string, TimelineEvent[]> = {};
@@ -116,7 +131,6 @@ const TimelinePage = () => {
   }, [filteredEvents]);
 
   const openEventDrawer = async (event: TimelineEvent) => {
-    // Fetch participants + provenance
     const [partRes, provRes] = await Promise.all([
       supabase.from("event_participants").select("person_id").eq("event_id", event.id),
       supabase.from("event_provenance").select("id, snippet_en, page_number, document_id").eq("event_id", event.id),
@@ -124,16 +138,18 @@ const TimelinePage = () => {
     const participantIds = (partRes.data || []).map((p) => p.person_id);
     const participants = people.filter((p) => participantIds.includes(p.id));
 
-    // Fetch doc names for provenance
-    const provWithDocs = await Promise.all(
-      (provRes.data || []).map(async (prov) => {
-        if (prov.document_id) {
-          const { data: doc } = await supabase.from("documents").select("file_name").eq("id", prov.document_id).single();
-          return { ...prov, document: doc };
-        }
-        return { ...prov, document: null };
-      })
-    );
+    // Batch fetch doc names
+    const docIds = [...new Set((provRes.data || []).map((p) => p.document_id).filter(Boolean))] as string[];
+    let docMap: Record<string, string> = {};
+    if (docIds.length > 0) {
+      const { data: docs } = await supabase.from("documents").select("id, file_name").in("id", docIds);
+      for (const d of docs || []) docMap[d.id] = d.file_name;
+    }
+
+    const provWithDocs = (provRes.data || []).map((prov) => ({
+      ...prov,
+      document: prov.document_id ? { file_name: docMap[prov.document_id] || "Unknown" } : null,
+    }));
 
     setSelectedEvent({ ...event, participants, provenance: provWithDocs });
     setDrawerOpen(true);
@@ -166,6 +182,10 @@ const TimelinePage = () => {
     setSaving(false);
   };
 
+  const togglePersonFilter = (id: string) => {
+    setPersonFilter((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -181,16 +201,14 @@ const TimelinePage = () => {
               <Button variant="outline" size="sm">
                 <Filter className="mr-2 h-4 w-4" />
                 Filters
+                {personFilter.length > 0 && <Badge variant="secondary" className="ml-1.5 text-[10px]">{personFilter.length}</Badge>}
                 <ChevronDown className="ml-1 h-3 w-3" />
               </Button>
             </CollapsibleTrigger>
           </Collapsible>
           <Dialog open={addOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Event
-              </Button>
+              <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Event</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -257,11 +275,27 @@ const TimelinePage = () => {
                   <Slider value={[minConfDate]} onValueChange={([v]) => setMinConfDate(v)} min={0} max={10} step={1} />
                 </div>
               </div>
+
+              {/* People filter */}
+              {people.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-xs">People</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {people.map((p) => (
+                      <label key={p.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={personFilter.includes(p.id)}
+                          onCheckedChange={() => togglePersonFilter(p.id)}
+                        />
+                        {p.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setMinImportance(8); setMinConfTruth(0); setMinConfDate(0); setStatusFilter([]); }}>
-                  Reset to "Major Events"
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => { setMinImportance(1); setMinConfTruth(0); setMinConfDate(0); setStatusFilter([]); }}>
+                <Button variant="ghost" size="sm" onClick={() => { setMinImportance(1); setMinConfTruth(0); setMinConfDate(0); setStatusFilter([]); setPersonFilter([]); }}>
                   Show All
                 </Button>
               </div>
@@ -286,17 +320,13 @@ const TimelinePage = () => {
           {groupedByYear.map(([year, yearEvents]) => (
             <div key={year}>
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl font-display font-bold text-foreground">{year}</span>
+                <span className="text-2xl font-bold text-foreground">{year}</span>
                 <Separator className="flex-1" />
                 <span className="text-xs text-muted-foreground">{yearEvents.length} event{yearEvents.length !== 1 ? "s" : ""}</span>
               </div>
               <div className="relative ml-4 border-l-2 border-border pl-6 space-y-4">
                 {yearEvents.map((event) => (
-                  <button
-                    key={event.id}
-                    onClick={() => openEventDrawer(event)}
-                    className="block w-full text-left group"
-                  >
+                  <button key={event.id} onClick={() => openEventDrawer(event)} className="block w-full text-left group">
                     <div className="absolute -left-[9px] h-4 w-4 rounded-full border-2 border-background bg-primary" style={{ marginTop: "4px" }} />
                     <Card className="transition-shadow hover:shadow-md cursor-pointer">
                       <CardContent className="py-3 px-4">
