@@ -14,6 +14,7 @@ import Docs from "./pages/Docs";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import DashboardPlaceholder from "./pages/DashboardPlaceholder";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,7 +44,7 @@ const App = () => (
               <Route path="analytics" element={<DashboardPlaceholder />} />
               <Route path="customers" element={<DashboardPlaceholder />} />
               <Route path="reports" element={<DashboardPlaceholder />} />
-              <Route path="settings" element={<DashboardPlaceholder />} />
+              <Route path="settings" element={<Settings />} />
               <Route path="notifications" element={<DashboardPlaceholder />} />
             </Route>
 
