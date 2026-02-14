@@ -19,6 +19,7 @@ const legalLinks = [
   { label: "Privacy", to: "/privacy" },
   { label: "Terms", to: "/terms" },
   { label: "Cookies", to: "/cookies" },
+  { label: "Impressum", to: "/impressum" },
 ];
 
 export function Footer() {
