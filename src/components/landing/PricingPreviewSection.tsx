@@ -1,43 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const tiers = [
   {
     name: "Free",
     price: "$0",
-    description: "For individuals and small projects",
-    features: ["Up to 3 projects", "Basic analytics", "Community support"],
+    description: "Explore Temerio manually, without AI.",
+    features: [
+      "Manual event creation",
+      "Up to 1 Person",
+      "Up to 20 events",
+      "Basic timeline view",
+    ],
     highlighted: false,
-    cta: "Get Started",
+    cta: "Start Free",
   },
   {
     name: "Pro",
-    price: "$29",
-    description: "For growing teams that need more",
+    price: "$12",
+    description: "Full document extraction and AI-powered timelines.",
     features: [
-      "Unlimited projects",
-      "AI-powered insights",
-      "Priority support",
-      "Advanced integrations",
+      "Unlimited People",
+      "PDF uploads & AI extraction",
+      "10,000 AI credits/month",
+      "Review Queue & Provenance",
     ],
     highlighted: true,
-    cta: "Start Free Trial",
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    description: "For organizations at scale",
-    features: [
-      "Everything in Pro",
-      "SSO & SAML",
-      "Dedicated account manager",
-      "Custom SLA",
-    ],
-    highlighted: false,
-    cta: "Contact Sales",
+    cta: "Upgrade to Pro",
   },
 ];
 
@@ -54,12 +46,12 @@ export function PricingPreviewSection() {
         >
           <h2>Simple, transparent pricing</h2>
           <p className="text-lg text-muted-foreground">
-            Start free and scale as you grow. No hidden fees, no surprises.
+            Start free. Upgrade when you need document extraction.
           </p>
         </motion.div>
 
         <motion.div
-          className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto"
+          className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -76,22 +68,18 @@ export function PricingPreviewSection() {
             >
               {tier.highlighted && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  Most Popular
+                  Recommended
                 </Badge>
               )}
               <div className="space-y-2">
                 <h4>{tier.name}</h4>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-bold font-display">
-                    {tier.price}
-                  </span>
-                  {tier.price !== "Custom" && (
+                  <span className="text-4xl font-bold font-display">{tier.price}</span>
+                  {tier.price !== "$0" && (
                     <span className="text-muted-foreground text-sm">/month</span>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {tier.description}
-                </p>
+                <p className="text-sm text-muted-foreground">{tier.description}</p>
               </div>
               <ul className="space-y-3 flex-1">
                 {tier.features.map((f) => (
@@ -106,7 +94,7 @@ export function PricingPreviewSection() {
                 className="w-full"
                 asChild
               >
-                <Link to={tier.name === "Enterprise" ? "/docs" : "/auth"}>
+                <Link to={tier.highlighted ? "/pricing" : "/auth"}>
                   {tier.cta}
                 </Link>
               </Button>
