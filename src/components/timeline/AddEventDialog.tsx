@@ -384,25 +384,24 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
           <input type="range" min={0} max={10} value={confTruth} onChange={(e) => setConfTruth(Number(e.target.value))} className="w-full" />
         </div>
 
-        {/* Matched participants */}
-        {matchedPeople.length > 0 && (
+        {/* People picker */}
+        {people.length > 0 && (
           <div className="space-y-2">
-            <Label className="text-xs">Linked People</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {matchedPeople.map((pid) => {
-                const person = people.find((p) => p.id === pid);
-                return person ? (
-                  <Badge key={pid} variant="secondary" className="text-xs">
-                    {person.name}
-                    <button
-                      className="ml-1 hover:text-destructive"
-                      onClick={() => setMatchedPeople((prev) => prev.filter((id) => id !== pid))}
-                    >
-                      ×
-                    </button>
-                  </Badge>
-                ) : null;
-              })}
+            <Label className="text-xs">People</Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {people.map((p) => (
+                <label key={p.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={matchedPeople.includes(p.id)}
+                    onCheckedChange={(checked) => {
+                      setMatchedPeople((prev) =>
+                        checked ? [...prev, p.id] : prev.filter((id) => id !== p.id)
+                      );
+                    }}
+                  />
+                  {p.name}
+                </label>
+              ))}
             </div>
           </div>
         )}
