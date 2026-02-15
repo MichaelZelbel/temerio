@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Loader2, Sparkles, Send, RotateCcw } from "lucide-react";
 import ImportanceSlider from "@/components/timeline/ImportanceSlider";
@@ -63,6 +64,7 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
   const [draftApplied, setDraftApplied] = useState(false);
   const [matchedPeople, setMatchedPeople] = useState<string[]>([]);
   const [suggestedNewPeople, setSuggestedNewPeople] = useState<string[]>([]);
+  const [selectedNewPeople, setSelectedNewPeople] = useState<string[]>([]);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -82,6 +84,7 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
       setDraftApplied(false);
       setMatchedPeople([]);
       setSuggestedNewPeople([]);
+      setSelectedNewPeople([]);
     }
   }, [open, today]);
 
@@ -108,6 +111,7 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
     }
     setMatchedPeople(matched);
     setSuggestedNewPeople(unmatched);
+    setSelectedNewPeople(unmatched); // select all by default
     setDraftApplied(true);
   };
 
@@ -187,10 +191,24 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
       return;
     }
 
-    // Link matched participants
-    if (matchedPeople.length > 0 && eventData) {
+    // Create new people that are selected
+    const newPeopleIds: string[] = [];
+    if (selectedNewPeople.length > 0 && eventData) {
+      for (const name of selectedNewPeople) {
+        const { data: personData } = await supabase
+          .from("people")
+          .insert({ user_id: user.id, name })
+          .select("id")
+          .single();
+        if (personData) newPeopleIds.push(personData.id);
+      }
+    }
+
+    // Link all participants (existing + newly created)
+    const allParticipantIds = [...matchedPeople, ...newPeopleIds];
+    if (allParticipantIds.length > 0 && eventData) {
       await supabase.from("event_participants").insert(
-        matchedPeople.map((pid) => ({ event_id: eventData.id, person_id: pid }))
+        allParticipantIds.map((pid) => ({ event_id: eventData.id, person_id: pid }))
       );
     }
 
@@ -354,13 +372,21 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
 
           {/* Suggested new people */}
           {suggestedNewPeople.length > 0 && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Suggested new people (not yet in your list)</Label>
-              <div className="flex flex-wrap gap-1.5">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Add new people (not yet in your list)</Label>
+              <div className="space-y-1.5">
                 {suggestedNewPeople.map((name) => (
-                  <Badge key={name} variant="outline" className="text-xs text-muted-foreground">
-                    {name}
-                  </Badge>
+                  <label key={name} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={selectedNewPeople.includes(name)}
+                      onCheckedChange={(checked) => {
+                        setSelectedNewPeople((prev) =>
+                          checked ? [...prev, name] : prev.filter((n) => n !== name)
+                        );
+                      }}
+                    />
+                    <span className="text-sm">{name}</span>
+                  </label>
                 ))}
               </div>
             </div>
