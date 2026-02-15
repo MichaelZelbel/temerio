@@ -17,6 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload } from "lucide-react";
 import { format } from "date-fns";
+import ImportanceSlider from "@/components/timeline/ImportanceSlider";
 
 interface Person {
   id: string;
@@ -240,10 +241,7 @@ const TimelinePage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Importance: {newImportance}</Label>
-                  <Slider value={[newImportance]} onValueChange={([v]) => setNewImportance(v)} min={1} max={10} step={1} />
-                </div>
+                <ImportanceSlider value={newImportance} onChange={setNewImportance} />
               </div>
               <DialogFooter>
                 <Button onClick={handleAddEvent} disabled={saving || !newHeadline || !newDateStart}>
