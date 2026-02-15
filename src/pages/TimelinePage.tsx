@@ -1,23 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload } from "lucide-react";
+import { Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload, Plus } from "lucide-react";
 import { format } from "date-fns";
-import ImportanceSlider from "@/components/timeline/ImportanceSlider";
+import AddEventDialog from "@/components/timeline/AddEventDialog";
 
 interface Person {
   id: string;
@@ -56,7 +51,6 @@ const statusColors: Record<string, string> = {
 
 const TimelinePage = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [participantMap, setParticipantMap] = useState<Record<string, string[]>>({});
@@ -64,7 +58,6 @@ const TimelinePage = () => {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
 
   // Filters
   const [minImportance, setMinImportance] = useState(1);
@@ -72,14 +65,6 @@ const TimelinePage = () => {
   const [minConfDate, setMinConfDate] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [personFilter, setPersonFilter] = useState<string[]>([]);
-
-  // New event form
-  const [newHeadline, setNewHeadline] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [newDateStart, setNewDateStart] = useState("");
-  const [newStatus, setNewStatus] = useState("unknown");
-  const [newImportance, setNewImportance] = useState(5);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -97,7 +82,6 @@ const TimelinePage = () => {
     if (eventsRes.data) setEvents(eventsRes.data);
     if (peopleRes.data) setPeople(peopleRes.data);
 
-    // Build event_id -> person_id[] map
     const map: Record<string, string[]> = {};
     for (const row of partsRes.data || []) {
       if (!map[row.event_id]) map[row.event_id] = [];
@@ -139,7 +123,6 @@ const TimelinePage = () => {
     const participantIds = (partRes.data || []).map((p) => p.person_id);
     const participants = people.filter((p) => participantIds.includes(p.id));
 
-    // Batch fetch doc names
     const docIds = [...new Set((provRes.data || []).map((p) => p.document_id).filter(Boolean))] as string[];
     let docMap: Record<string, string> = {};
     if (docIds.length > 0) {
@@ -154,33 +137,6 @@ const TimelinePage = () => {
 
     setSelectedEvent({ ...event, participants, provenance: provWithDocs });
     setDrawerOpen(true);
-  };
-
-  const handleAddEvent = async () => {
-    if (!user || !newHeadline || !newDateStart) return;
-    setSaving(true);
-    const { error } = await supabase.from("events").insert({
-      user_id: user.id,
-      headline_en: newHeadline,
-      description_en: newDescription || null,
-      date_start: newDateStart,
-      status: newStatus,
-      importance: newImportance,
-      source: "manual",
-    });
-    if (error) {
-      toast({ title: "Failed to create event", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Event created" });
-      setAddOpen(false);
-      setNewHeadline("");
-      setNewDescription("");
-      setNewDateStart("");
-      setNewStatus("unknown");
-      setNewImportance(5);
-      fetchData();
-    }
-    setSaving(false);
   };
 
   const togglePersonFilter = (id: string) => {
@@ -207,50 +163,7 @@ const TimelinePage = () => {
               </Button>
             </CollapsibleTrigger>
           </Collapsible>
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="mr-2 h-4 w-4" /> Add Event</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Manual Event</DialogTitle>
-                <DialogDescription>Create a new timeline event manually.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Headline *</Label>
-                  <Input value={newHeadline} onChange={(e) => setNewHeadline(e.target.value)} placeholder="What happened?" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Date *</Label>
-                  <Input type="date" value={newDateStart} onChange={(e) => setNewDateStart(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} placeholder="Optional details..." rows={3} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={newStatus} onValueChange={setNewStatus}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="past_fact">Past Fact</SelectItem>
-                      <SelectItem value="future_plan">Future Plan</SelectItem>
-                      <SelectItem value="ongoing">Ongoing</SelectItem>
-                      <SelectItem value="unknown">Unknown</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <ImportanceSlider value={newImportance} onChange={setNewImportance} />
-              </div>
-              <DialogFooter>
-                <Button onClick={handleAddEvent} disabled={saving || !newHeadline || !newDateStart}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Event
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <AddEventDialog people={people} onCreated={fetchData} />
         </div>
       </div>
 
@@ -274,7 +187,6 @@ const TimelinePage = () => {
                 </div>
               </div>
 
-              {/* People filter */}
               {people.length > 0 && (
                 <div className="space-y-2">
                   <Label className="text-xs">People</Label>
@@ -308,14 +220,12 @@ const TimelinePage = () => {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : groupedByYear.length === 0 ? (
-      <div className="text-center py-20 text-muted-foreground space-y-4">
+        <div className="text-center py-20 text-muted-foreground space-y-4">
           <Calendar className="mx-auto h-12 w-12 mb-4 opacity-40" />
           <p className="text-lg font-medium">No events yet</p>
           <p className="text-sm">Upload documents or add events manually to build your timeline.</p>
           <div className="flex justify-center gap-3 pt-2">
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Add your first event
-            </Button>
+            <AddEventDialog people={people} onCreated={fetchData} />
             <Button size="sm" variant="outline" asChild>
               <a href="/upload"><Upload className="mr-2 h-4 w-4" /> Upload documents</a>
             </Button>
