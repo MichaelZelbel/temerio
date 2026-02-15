@@ -1,24 +1,24 @@
 import { motion } from "framer-motion";
-import { UserPlus, Settings2, Rocket } from "lucide-react";
+import { Upload, Search, Clock } from "lucide-react";
 
 const steps = [
   {
-    icon: UserPlus,
-    title: "Create your account",
+    icon: Upload,
+    title: "Upload a PDF",
     description:
-      "Sign up in seconds — no credit card, no commitment. Get instant access to your workspace.",
+      "Drop any document — medical records, legal papers, school reports. Temerio accepts PDF files.",
   },
   {
-    icon: Settings2,
-    title: "Configure your workflow",
+    icon: Search,
+    title: "AI extracts events",
     description:
-      "Connect your tools, invite your team, and customize dashboards to match your process.",
+      "Key dates, people, and facts are pulled from the document and organized automatically.",
   },
   {
-    icon: Rocket,
-    title: "Ship with confidence",
+    icon: Clock,
+    title: "Review your timeline",
     description:
-      "Let AI surface insights while you focus on building. Deploy faster and smarter, every time.",
+      "See all events on a structured timeline. Verify, edit, or dismiss anything the AI found.",
   },
 ];
 
@@ -35,7 +35,7 @@ export function HowItWorksSection() {
         >
           <h2>How it works</h2>
           <p className="text-lg text-muted-foreground">
-            Get up and running in three simple steps.
+            Three steps from document to timeline.
           </p>
         </motion.div>
 
