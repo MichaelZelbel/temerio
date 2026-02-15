@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2, Sparkles, Send, RotateCcw } from "lucide-react";
+import { Plus, Loader2, Sparkles, Send, RotateCcw, Pencil } from "lucide-react";
 import ImportanceSlider from "@/components/timeline/ImportanceSlider";
 import { format } from "date-fns";
 
@@ -33,17 +33,39 @@ interface EventDraft {
   participants?: string[];
 }
 
+interface EditEventData {
+  id: string;
+  headline_en: string;
+  description_en: string | null;
+  date_start: string;
+  date_end: string | null;
+  status: string;
+  importance: number;
+  confidence_date: number;
+  confidence_truth: number;
+  participantIds?: string[];
+}
+
 interface AddEventDialogProps {
   people: Person[];
   onCreated: () => void;
+  /** If provided, opens in edit mode */
+  editEvent?: EditEventData | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
+const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, onOpenChange }: AddEventDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (onOpenChange || (() => {})) : setInternalOpen;
+
+  const isEditMode = !!editEvent;
 
   // Form fields
   const [headline, setHeadline] = useState("");
@@ -70,23 +92,35 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
 
   useEffect(() => {
     if (open) {
-      setDateStart(today);
-      setDateEnd("");
-      setHeadline("");
-      setDescription("");
-      setStatus("unknown");
-      setImportance(5);
-      setConfDate(5);
-      setConfTruth(5);
+      if (editEvent) {
+        setHeadline(editEvent.headline_en);
+        setDescription(editEvent.description_en || "");
+        setDateStart(editEvent.date_start);
+        setDateEnd(editEvent.date_end || "");
+        setStatus(editEvent.status);
+        setImportance(editEvent.importance);
+        setConfDate(editEvent.confidence_date);
+        setConfTruth(editEvent.confidence_truth);
+        setMatchedPeople(editEvent.participantIds || []);
+      } else {
+        setDateStart(today);
+        setDateEnd("");
+        setHeadline("");
+        setDescription("");
+        setStatus("unknown");
+        setImportance(5);
+        setConfDate(5);
+        setConfTruth(5);
+        setMatchedPeople([]);
+      }
       setAiMode(false);
       setAiInput("");
       setChatHistory([]);
       setDraftApplied(false);
-      setMatchedPeople([]);
       setSuggestedNewPeople([]);
       setSelectedNewPeople([]);
     }
-  }, [open, today]);
+  }, [open, today, editEvent]);
 
   const applyDraft = (draft: EventDraft) => {
     setHeadline(draft.headline_en);
@@ -98,20 +132,17 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
     setConfDate(Math.max(0, Math.min(10, draft.confidence_date)));
     setConfTruth(Math.max(0, Math.min(10, draft.confidence_truth)));
 
-    // Match participants
     const names = draft.participants || [];
     const matched: string[] = [];
     const unmatched: string[] = [];
     for (const name of names) {
-      const found = people.find(
-        (p) => p.name.toLowerCase() === name.toLowerCase()
-      );
+      const found = people.find((p) => p.name.toLowerCase() === name.toLowerCase());
       if (found) matched.push(found.id);
       else unmatched.push(name);
     }
     setMatchedPeople(matched);
     setSuggestedNewPeople(unmatched);
-    setSelectedNewPeople(unmatched); // select all by default
+    setSelectedNewPeople(unmatched);
     setDraftApplied(true);
   };
 
@@ -141,18 +172,12 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
 
       setChatHistory([
         ...newHistory,
-        {
-          role: "assistant",
-          content: `Draft applied: "${draft.headline_en}" (importance ${draft.importance}/10)`,
-        },
+        { role: "assistant", content: `Draft applied: "${draft.headline_en}" (importance ${draft.importance}/10)` },
       ]);
     } catch (err: any) {
       const msg = err?.message || "AI request failed";
       toast({ title: "AI error", description: msg, variant: "destructive" });
-      setChatHistory([
-        ...newHistory,
-        { role: "assistant", content: `Error: ${msg}` },
-      ]);
+      setChatHistory([...newHistory, { role: "assistant", content: `Error: ${msg}` }]);
     } finally {
       setAiLoading(false);
     }
@@ -168,32 +193,52 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
     if (!user || !headline || !dateStart) return;
     setSaving(true);
 
-    const { data: eventData, error } = await supabase
-      .from("events")
-      .insert({
-        user_id: user.id,
-        headline_en: headline,
-        description_en: description || null,
-        date_start: dateStart,
-        date_end: dateEnd || null,
-        status,
-        importance,
-        confidence_date: confDate,
-        confidence_truth: confTruth,
-        source: "manual",
-      })
-      .select("id")
-      .single();
+    const eventPayload = {
+      headline_en: headline,
+      description_en: description || null,
+      date_start: dateStart,
+      date_end: dateEnd || null,
+      status,
+      importance,
+      confidence_date: confDate,
+      confidence_truth: confTruth,
+    };
 
-    if (error) {
-      toast({ title: "Failed to create event", description: error.message, variant: "destructive" });
-      setSaving(false);
-      return;
+    let eventId: string;
+
+    if (isEditMode && editEvent) {
+      const { error } = await supabase
+        .from("events")
+        .update(eventPayload)
+        .eq("id", editEvent.id);
+
+      if (error) {
+        toast({ title: "Failed to update event", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      eventId = editEvent.id;
+
+      // Remove old participants, re-insert
+      await supabase.from("event_participants").delete().eq("event_id", eventId);
+    } else {
+      const { data: eventData, error } = await supabase
+        .from("events")
+        .insert({ ...eventPayload, user_id: user.id, source: "manual" })
+        .select("id")
+        .single();
+
+      if (error || !eventData) {
+        toast({ title: "Failed to create event", description: error?.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      eventId = eventData.id;
     }
 
     // Create new people that are selected
     const newPeopleIds: string[] = [];
-    if (selectedNewPeople.length > 0 && eventData) {
+    if (selectedNewPeople.length > 0) {
       for (const name of selectedNewPeople) {
         const { data: personData } = await supabase
           .from("people")
@@ -204,19 +249,203 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
       }
     }
 
-    // Link all participants (existing + newly created)
+    // Link all participants
     const allParticipantIds = [...matchedPeople, ...newPeopleIds];
-    if (allParticipantIds.length > 0 && eventData) {
+    if (allParticipantIds.length > 0) {
       await supabase.from("event_participants").insert(
-        allParticipantIds.map((pid) => ({ event_id: eventData.id, person_id: pid }))
+        allParticipantIds.map((pid) => ({ event_id: eventId, person_id: pid }))
       );
     }
 
-    toast({ title: "Event created" });
+    toast({ title: isEditMode ? "Event updated" : "Event created" });
     setOpen(false);
     onCreated();
     setSaving(false);
   };
+
+  const dialogContent = (
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogHeader>
+        <DialogTitle>{isEditMode ? "Edit Event" : "Add Manual Event"}</DialogTitle>
+        <DialogDescription>
+          {isEditMode ? "Update this timeline event." : "Create a new timeline event manually or with AI assistance."}
+        </DialogDescription>
+      </DialogHeader>
+
+      {/* AI toggle */}
+      {!aiMode ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full justify-start text-muted-foreground"
+          onClick={() => setAiMode(true)}
+        >
+          <Sparkles className="mr-2 h-4 w-4" />
+          Use AI to fill this
+        </Button>
+      ) : (
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" /> AI Assistant
+            </span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setAiMode(false)}>
+              Close
+            </Button>
+          </div>
+
+          {chatHistory.length > 0 && (
+            <div className="max-h-32 overflow-y-auto space-y-2 text-xs">
+              {chatHistory.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`rounded px-2 py-1.5 ${
+                    msg.role === "user" ? "bg-primary/10 text-foreground" : "bg-background text-muted-foreground"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Input
+              value={aiInput}
+              onChange={(e) => setAiInput(e.target.value)}
+              placeholder="Describe your event…"
+              className="text-sm"
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAiGenerate()}
+              disabled={aiLoading}
+            />
+            <Button size="sm" onClick={handleAiGenerate} disabled={aiLoading || !aiInput.trim()}>
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
+
+          {draftApplied && (
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="text-[10px]">Draft applied</Badge>
+              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleRefine}>
+                <RotateCcw className="mr-1 h-3 w-3" /> Refine with AI
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <Separator />
+
+      {/* Form fields */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label>Headline *</Label>
+          <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="What happened?" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Start Date *</Label>
+            <Input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>End Date</Label>
+            <Input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Description</Label>
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional details…" rows={3} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="past_fact">Past Fact</SelectItem>
+                <SelectItem value="future_plan">Future Plan</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="unknown">Unknown</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Confidence (Date): {confDate}</Label>
+            <div className="pt-2">
+              <input type="range" min={0} max={10} value={confDate} onChange={(e) => setConfDate(Number(e.target.value))} className="w-full" />
+            </div>
+          </div>
+        </div>
+
+        <ImportanceSlider value={importance} onChange={setImportance} />
+
+        <div className="space-y-2">
+          <Label>Confidence (Truth): {confTruth}</Label>
+          <input type="range" min={0} max={10} value={confTruth} onChange={(e) => setConfTruth(Number(e.target.value))} className="w-full" />
+        </div>
+
+        {/* Matched participants */}
+        {matchedPeople.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-xs">Linked People</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {matchedPeople.map((pid) => {
+                const person = people.find((p) => p.id === pid);
+                return person ? (
+                  <Badge key={pid} variant="secondary" className="text-xs">
+                    {person.name}
+                    <button
+                      className="ml-1 hover:text-destructive"
+                      onClick={() => setMatchedPeople((prev) => prev.filter((id) => id !== pid))}
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ) : null;
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Suggested new people */}
+        {suggestedNewPeople.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Add new people (not yet in your list)</Label>
+            <div className="space-y-1.5">
+              {suggestedNewPeople.map((name) => (
+                <label key={name} className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={selectedNewPeople.includes(name)}
+                    onCheckedChange={(checked) => {
+                      setSelectedNewPeople((prev) =>
+                        checked ? [...prev, name] : prev.filter((n) => n !== name)
+                      );
+                    }}
+                  />
+                  <span className="text-sm">{name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <DialogFooter>
+        <Button onClick={handleSave} disabled={saving || !headline || !dateStart}>
+          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isEditMode ? "Save Changes" : "Create Event"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+
+  if (isControlled) {
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        {dialogContent}
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -225,181 +454,7 @@ const AddEventDialog = ({ people, onCreated }: AddEventDialogProps) => {
           <Plus className="mr-2 h-4 w-4" /> Add Event
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add Manual Event</DialogTitle>
-          <DialogDescription>Create a new timeline event manually or with AI assistance.</DialogDescription>
-        </DialogHeader>
-
-        {/* AI toggle */}
-        {!aiMode ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start text-muted-foreground"
-            onClick={() => setAiMode(true)}
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Use AI to fill this
-          </Button>
-        ) : (
-          <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" /> AI Assistant
-              </span>
-              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setAiMode(false)}>
-                Close
-              </Button>
-            </div>
-
-            {/* Chat messages */}
-            {chatHistory.length > 0 && (
-              <div className="max-h-32 overflow-y-auto space-y-2 text-xs">
-                {chatHistory.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={`rounded px-2 py-1.5 ${
-                      msg.role === "user"
-                        ? "bg-primary/10 text-foreground"
-                        : "bg-background text-muted-foreground"
-                    }`}
-                  >
-                    {msg.content}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Input */}
-            <div className="flex gap-2">
-              <Input
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-                placeholder="Describe your event…"
-                className="text-sm"
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAiGenerate()}
-                disabled={aiLoading}
-              />
-              <Button size="sm" onClick={handleAiGenerate} disabled={aiLoading || !aiInput.trim()}>
-                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </div>
-
-            {draftApplied && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-[10px]">Draft applied</Badge>
-                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={handleRefine}>
-                  <RotateCcw className="mr-1 h-3 w-3" /> Refine with AI
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Form fields */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Headline *</Label>
-            <Input value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="What happened?" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Start Date *</Label>
-              <Input type="date" value={dateStart} onChange={(e) => setDateStart(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>End Date</Label>
-              <Input type="date" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label>Description</Label>
-            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional details…" rows={3} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="past_fact">Past Fact</SelectItem>
-                  <SelectItem value="future_plan">Future Plan</SelectItem>
-                  <SelectItem value="ongoing">Ongoing</SelectItem>
-                  <SelectItem value="unknown">Unknown</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Confidence (Date): {confDate}</Label>
-              <div className="pt-2">
-                <input type="range" min={0} max={10} value={confDate} onChange={(e) => setConfDate(Number(e.target.value))} className="w-full" />
-              </div>
-            </div>
-          </div>
-
-          <ImportanceSlider value={importance} onChange={setImportance} />
-
-          <div className="space-y-2">
-            <Label>Confidence (Truth): {confTruth}</Label>
-            <input type="range" min={0} max={10} value={confTruth} onChange={(e) => setConfTruth(Number(e.target.value))} className="w-full" />
-          </div>
-
-          {/* Matched participants */}
-          {matchedPeople.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs">Linked People</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {matchedPeople.map((pid) => {
-                  const person = people.find((p) => p.id === pid);
-                  return person ? (
-                    <Badge key={pid} variant="secondary" className="text-xs">
-                      {person.name}
-                      <button
-                        className="ml-1 hover:text-destructive"
-                        onClick={() => setMatchedPeople((prev) => prev.filter((id) => id !== pid))}
-                      >
-                        ×
-                      </button>
-                    </Badge>
-                  ) : null;
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Suggested new people */}
-          {suggestedNewPeople.length > 0 && (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Add new people (not yet in your list)</Label>
-              <div className="space-y-1.5">
-                {suggestedNewPeople.map((name) => (
-                  <label key={name} className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={selectedNewPeople.includes(name)}
-                      onCheckedChange={(checked) => {
-                        setSelectedNewPeople((prev) =>
-                          checked ? [...prev, name] : prev.filter((n) => n !== name)
-                        );
-                      }}
-                    />
-                    <span className="text-sm">{name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button onClick={handleSave} disabled={saving || !headline || !dateStart}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Event
-          </Button>
-        </DialogFooter>
-      </DialogContent>
+      {dialogContent}
     </Dialog>
   );
 };
