@@ -308,6 +308,144 @@ const pages: Record<string, DocPage> = {
     ),
   },
 
+  importance: {
+    headings: [
+      { id: "what-it-means", label: "What Importance Means" },
+      { id: "levels", label: "Levels 1–10" },
+      { id: "rule-of-thumb", label: "Rule of Thumb" },
+    ],
+    searchText:
+      "importance 1 2 3 4 5 6 7 8 9 10 confidence timeline event examples parents visit marriage turning point milestone",
+    content: (
+      <>
+        <h2 id="what-it-means">What Importance Means</h2>
+        <p>Importance answers one question:</p>
+        <p><strong>How much does this event change the direction or structure of your life?</strong></p>
+        <p>It is not about emotion.</p>
+        <p>It is about <strong>structural impact</strong>.</p>
+
+        <h2 id="levels">Levels 1–10</h2>
+
+        <h3>1 — Almost no impact</h3>
+        <p>Very small events.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>A short call</li>
+          <li>A routine meeting</li>
+          <li>Buying groceries</li>
+          <li>A normal workday</li>
+        </ul>
+        <p>If it disappeared, nothing would change.</p>
+
+        <h3>2 — Small moment</h3>
+        <p>Slightly more noticeable, but still minor.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>A nice visit with your parents</li>
+          <li>Meeting a friend for dinner</li>
+          <li>Attending a webinar</li>
+          <li>A short weekend trip</li>
+        </ul>
+        <p>Pleasant or useful, but not life-shaping.</p>
+
+        <h3>3 — Minor milestone</h3>
+        <p>A small achievement or event you might remember.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Finishing a short course</li>
+          <li>Publishing a blog post</li>
+          <li>Completing a small project</li>
+          <li>Giving a presentation</li>
+        </ul>
+        <p>It matters, but doesn't shift your life.</p>
+
+        <h3>4 — Meaningful event</h3>
+        <p>Something that adds noticeable structure.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Starting a new hobby seriously</li>
+          <li>A longer trip abroad</li>
+          <li>A moderate financial decision</li>
+          <li>Beginning a side project</li>
+        </ul>
+        <p>It adds weight to your current life chapter.</p>
+
+        <h3>5 — Clearly significant</h3>
+        <p>An event that shapes a phase of your life.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Moving apartments</li>
+          <li>Getting a promotion</li>
+          <li>Starting a serious relationship</li>
+          <li>Launching a real product</li>
+        </ul>
+        <p>It changes how your life feels, but not your overall direction.</p>
+
+        <h3>6 — Major shift within a chapter</h3>
+        <p>A strong change, but still inside your broader path.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Changing jobs within the same field</li>
+          <li>Moving to a new city</li>
+          <li>Ending a long-term project</li>
+          <li>A serious financial investment</li>
+        </ul>
+        <p>Life feels different afterward.</p>
+
+        <h3>7 — Clear turning point</h3>
+        <p>A "before and after" event.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Marriage</li>
+          <li>Founding a company</li>
+          <li>Changing career direction</li>
+          <li>Long-term relocation</li>
+        </ul>
+        <p>You can clearly see a new chapter starting here.</p>
+
+        <h3>8 — Very rare structural change</h3>
+        <p>An event that deeply reshapes your life.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Immigration to another country</li>
+          <li>Selling a company</li>
+          <li>Becoming a parent</li>
+          <li>Major personal transformation</li>
+        </ul>
+        <p>Your life structure is clearly different afterward.</p>
+
+        <h3>9 — Life-defining</h3>
+        <p>One of the most important events in your life.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Birth of a child (if central to your life)</li>
+          <li>A radical career reinvention</li>
+          <li>A defining health event</li>
+        </ul>
+        <p>There are only a few of these.</p>
+
+        <h3>10 — Foundational anchor</h3>
+        <p>The core events your life is built around.</p>
+        <p>Examples:</p>
+        <ul>
+          <li>Your birth</li>
+          <li>A marriage that completely reshaped your life</li>
+          <li>A decision that permanently changed everything</li>
+        </ul>
+        <p>There should be very few 10s.</p>
+
+        <h2 id="rule-of-thumb">Rule of Thumb</h2>
+        <p><strong>If this event had not happened, would my life look structurally different?</strong></p>
+        <ul>
+          <li><strong>No</strong> → 1–3</li>
+          <li><strong>A little</strong> → 4–5</li>
+          <li><strong>Clearly yes</strong> → 6–7</li>
+          <li><strong>Fundamentally yes</strong> → 8–10</li>
+        </ul>
+      </>
+    ),
+  },
+
   faq: {
     headings: [
       { id: "general", label: "General" },
