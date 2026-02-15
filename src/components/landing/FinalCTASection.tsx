@@ -14,7 +14,6 @@ export function FinalCTASection() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
         >
-          {/* Subtle pattern overlay */}
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -24,11 +23,11 @@ export function FinalCTASection() {
           />
 
           <h2 className="text-primary-foreground relative z-10">
-            Ready to get started?
+            Ready to build your timeline?
           </h2>
           <p className="text-primary-foreground/80 text-lg max-w-xl mx-auto relative z-10">
-            Join thousands of teams already building smarter with Temerio. Your
-            first 14 days are on us.
+            Upload your first document and see Temerio in action. Free to start,
+            no credit card required.
           </p>
           <div className="relative z-10">
             <Button
@@ -38,7 +37,7 @@ export function FinalCTASection() {
               asChild
             >
               <Link to="/auth">
-                Start Building for Free
+                Get Started
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>

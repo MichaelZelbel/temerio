@@ -1,49 +1,42 @@
 import { motion } from "framer-motion";
-import {
-  Brain,
-  Users,
-  ShieldCheck,
-  Puzzle,
-  BarChart3,
-  Headphones,
-} from "lucide-react";
+import { FileText, Users, CheckCircle, Clock, Languages, ShieldCheck } from "lucide-react";
 
 const features = [
   {
-    icon: Brain,
-    title: "AI-Powered Insights",
+    icon: FileText,
+    title: "PDF extraction",
     description:
-      "Leverage machine learning to uncover patterns and opportunities hidden in your data.",
+      "Upload PDF documents and let AI pull out dates, events, and key facts automatically.",
+  },
+  {
+    icon: Clock,
+    title: "Structured timeline",
+    description:
+      "All extracted events appear on a chronological timeline you can browse, filter, and search.",
+  },
+  {
+    icon: CheckCircle,
+    title: "Review & verify",
+    description:
+      "Every AI-extracted event can be reviewed, edited, or dismissed before it becomes part of your record.",
   },
   {
     icon: Users,
-    title: "Seamless Collaboration",
+    title: "People management",
     description:
-      "Work together in real-time with shared dashboards, comments, and role-based access.",
+      "Organize events by person. Track timelines for yourself or others you care about.",
+  },
+  {
+    icon: Languages,
+    title: "Multi-language support",
+    description:
+      "Documents in different languages are processed and translated into English for a unified timeline.",
   },
   {
     icon: ShieldCheck,
-    title: "Enterprise Security",
+    title: "Your data stays yours",
     description:
-      "SOC 2 compliant with end-to-end encryption, SSO, and audit logging built in.",
-  },
-  {
-    icon: Puzzle,
-    title: "Integrations",
-    description:
-      "Connect to 200+ tools you already use — Slack, Jira, Salesforce, and more.",
-  },
-  {
-    icon: BarChart3,
-    title: "Analytics Dashboard",
-    description:
-      "Beautiful, real-time dashboards that turn complex data into clear decisions.",
-  },
-  {
-    icon: Headphones,
-    title: "24/7 Support",
-    description:
-      "Dedicated support engineers available around the clock to keep you moving.",
+      "Documents are stored securely. Only you can access your uploads and extracted events.",
   },
 ];
 
@@ -68,9 +61,9 @@ export function FeaturesSection() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.5 }}
         >
-          <h2>Everything you need to scale</h2>
+          <h2>What Temerio does today</h2>
           <p className="text-lg text-muted-foreground">
-            Powerful features designed for modern teams that move fast and think big.
+            A focused set of tools for turning documents into timelines.
           </p>
         </motion.div>
 
