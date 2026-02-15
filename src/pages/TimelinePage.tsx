@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload, Plus } from "lucide-react";
+import { Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload, Plus, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import AddEventDialog from "@/components/timeline/AddEventDialog";
 
@@ -58,6 +58,19 @@ const TimelinePage = () => {
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editEventData, setEditEventData] = useState<{
+    id: string;
+    headline_en: string;
+    description_en: string | null;
+    date_start: string;
+    date_end: string | null;
+    status: string;
+    importance: number;
+    confidence_date: number;
+    confidence_truth: number;
+    participantIds?: string[];
+  } | null>(null);
 
   // Filters
   const [minImportance, setMinImportance] = useState(1);
@@ -141,6 +154,24 @@ const TimelinePage = () => {
 
   const togglePersonFilter = (id: string) => {
     setPersonFilter((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
+  };
+
+  const openEditDialog = (event: TimelineEvent) => {
+    const participantIds = (event.participants || []).map((p) => p.id);
+    setEditEventData({
+      id: event.id,
+      headline_en: event.headline_en,
+      description_en: event.description_en,
+      date_start: event.date_start,
+      date_end: event.date_end,
+      status: event.status,
+      importance: event.importance,
+      confidence_date: event.confidence_date,
+      confidence_truth: event.confidence_truth,
+      participantIds,
+    });
+    setDrawerOpen(false);
+    setEditDialogOpen(true);
   };
 
   return (
@@ -285,6 +316,10 @@ const TimelinePage = () => {
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-6">
+                <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedEvent)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit Event
+                </Button>
+
                 {selectedEvent.description_en && (
                   <p className="text-sm text-muted-foreground">{selectedEvent.description_en}</p>
                 )}
@@ -346,6 +381,15 @@ const TimelinePage = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Edit event dialog */}
+      <AddEventDialog
+        people={people}
+        onCreated={fetchData}
+        editEvent={editEventData}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+      />
     </div>
   );
 };
