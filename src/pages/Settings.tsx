@@ -23,6 +23,7 @@ import { Loader2, Camera, Eye, EyeOff, AlertTriangle, CreditCard, ArrowUpRight, 
 import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
 import { CreditsDisplay } from "@/components/settings/CreditsDisplay";
+import { SyncSettingsTab } from "@/components/sync/SyncSettingsTab";
 
 function passwordStrength(pw: string) {
   let score = 0;
@@ -50,6 +51,7 @@ const Settings = () => {
             <TabsTrigger value="profile" className="min-h-[44px] sm:min-h-0">Profile</TabsTrigger>
             <TabsTrigger value="subscription" className="min-h-[44px] sm:min-h-0">Subscription</TabsTrigger>
             <TabsTrigger value="ai-credits" className="min-h-[44px] sm:min-h-0">AI Credits</TabsTrigger>
+            <TabsTrigger value="sync" className="min-h-[44px] sm:min-h-0">Sync</TabsTrigger>
             <TabsTrigger value="account" className="min-h-[44px] sm:min-h-0">Account</TabsTrigger>
             <TabsTrigger value="danger" className="min-h-[44px] sm:min-h-0">Danger Zone</TabsTrigger>
           </TabsList>
@@ -57,6 +59,7 @@ const Settings = () => {
         <TabsContent value="profile"><ProfileTab /></TabsContent>
         <TabsContent value="subscription"><SubscriptionTab /></TabsContent>
         <TabsContent value="ai-credits"><AICreditsTab /></TabsContent>
+        <TabsContent value="sync"><SyncSettingsTab /></TabsContent>
         <TabsContent value="account"><AccountTab /></TabsContent>
         <TabsContent value="danger"><DangerTab /></TabsContent>
       </Tabs>

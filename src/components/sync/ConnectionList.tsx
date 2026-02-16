@@ -1,0 +1,122 @@
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
+interface Connection {
+  id: string;
+  remote_app: string;
+  remote_base_url: string;
+  status: string;
+  created_at: string;
+}
+
+export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }) {
+  const { toast } = useToast();
+  const [connections, setConnections] = useState<Connection[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchConnections = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("sync_connections")
+      .select("id, remote_app, remote_base_url, status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast({ title: "Failed to load connections", description: error.message, variant: "destructive" });
+    } else {
+      setConnections(data || []);
+    }
+    setLoading(false);
+  }, [toast]);
+
+  useEffect(() => { fetchConnections(); }, [fetchConnections]);
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("sync_connections").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Connection removed" });
+      setConnections((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Active Connections</CardTitle>
+            <CardDescription>Linked Temerio / Cherishly instances.</CardDescription>
+          </div>
+          <Button variant="ghost" size="icon" onClick={fetchConnections} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          </div>
+        ) : connections.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4">No connections yet. Generate or enter a pairing code above.</p>
+        ) : (
+          <ul className="divide-y">
+            {connections.map((c) => (
+              <li key={c.id} className="flex items-center justify-between py-3 gap-3">
+                <button
+                  type="button"
+                  className="flex items-center gap-3 min-w-0 text-left hover:underline"
+                  onClick={() => onSelect?.(c.id)}
+                >
+                  {c.status === "active" ? (
+                    <Wifi className="h-4 w-4 text-success shrink-0" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{c.remote_app}</p>
+                    <p className="text-xs text-muted-foreground truncate">{c.remote_base_url}</p>
+                  </div>
+                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={c.status === "active" ? "success" : "secondary"} className="text-xs">
+                    {c.status}
+                  </Badge>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remove connection?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will stop syncing with <strong>{c.remote_app}</strong>. You can re-pair later.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(c.id)}>Remove</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
