@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const statusColors: Record<string, string> = {
 };
 
 const TimelinePage = () => {
+  useSeo({ title: "Timeline", path: "/timeline", noIndex: true });
   const { user } = useAuth();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [people, setPeople] = useState<Person[]>([]);

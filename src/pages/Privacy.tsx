@@ -1,4 +1,5 @@
 import { LegalLayout } from "@/components/legal/LegalLayout";
+import { useSeo } from "@/hooks/useSeo";
 
 const toc = [
   { id: "info-collect", label: "Information We Collect" },
@@ -10,7 +11,9 @@ const toc = [
   { id: "contact", label: "Contact Information" },
 ];
 
-const Privacy = () => (
+const Privacy = () => {
+  useSeo({ title: "Privacy Policy", description: "Read the Temerio Privacy Policy.", path: "/privacy" });
+  return (
   <LegalLayout title="Privacy Policy" lastUpdated="February 14, 2026" toc={toc}>
     <section>
       <p>
@@ -94,6 +97,7 @@ const Privacy = () => (
       </ul>
     </section>
   </LegalLayout>
-);
+  );
+};
 
 export default Privacy;

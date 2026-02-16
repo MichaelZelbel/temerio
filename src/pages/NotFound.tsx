@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Home, LayoutDashboard, Search, FileQuestion } from "lucide-react";
 
 const NotFound = () => {
+  useSeo({ title: "Page Not Found", noIndex: true });
   const location = useLocation();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");

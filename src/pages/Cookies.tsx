@@ -1,4 +1,5 @@
 import { LegalLayout } from "@/components/legal/LegalLayout";
+import { useSeo } from "@/hooks/useSeo";
 
 const toc = [
   { id: "what-are-cookies", label: "What Are Cookies" },
@@ -7,7 +8,9 @@ const toc = [
   { id: "third-party", label: "Third-Party Cookies" },
 ];
 
-const Cookies = () => (
+const Cookies = () => {
+  useSeo({ title: "Cookie Policy", description: "Read the Temerio Cookie Policy.", path: "/cookies" });
+  return (
   <LegalLayout title="Cookie Policy" lastUpdated="February 14, 2026" toc={toc}>
     <section>
       <p>
@@ -65,6 +68,7 @@ const Cookies = () => (
       <p>If you have questions about our use of cookies, contact us at privacy@[companyname].com.</p>
     </section>
   </LegalLayout>
-);
+  );
+};
 
 export default Cookies;

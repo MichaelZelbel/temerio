@@ -1,4 +1,5 @@
 import { LegalLayout } from "@/components/legal/LegalLayout";
+import { useSeo } from "@/hooks/useSeo";
 
 const toc = [
   { id: "acceptance", label: "Acceptance of Terms" },
@@ -13,7 +14,9 @@ const toc = [
   { id: "governing-law", label: "Governing Law" },
 ];
 
-const Terms = () => (
+const Terms = () => {
+  useSeo({ title: "Terms of Service", description: "Read the Temerio Terms of Service.", path: "/terms" });
+  return (
   <LegalLayout title="Terms of Service" lastUpdated="February 14, 2026" toc={toc}>
     <section>
       <p>
@@ -80,6 +83,7 @@ const Terms = () => (
       <p>These Terms shall be governed by and construed in accordance with the laws of [Jurisdiction], without regard to its conflict of law provisions. Any disputes shall be resolved in the courts of [Jurisdiction]. For EU residents, this does not affect your rights under mandatory consumer protection laws.</p>
     </section>
   </LegalLayout>
-);
+  );
+};
 
 export default Terms;

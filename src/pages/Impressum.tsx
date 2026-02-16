@@ -1,4 +1,5 @@
 import { LegalLayout } from "@/components/legal/LegalLayout";
+import { useSeo } from "@/hooks/useSeo";
 
 const toc = [
   { id: "company-info", label: "Company Information" },
@@ -9,7 +10,9 @@ const toc = [
   { id: "dispute", label: "Dispute Resolution" },
 ];
 
-const Impressum = () => (
+const Impressum = () => {
+  useSeo({ title: "Impressum", description: "Legal information and company details for Temerio.", path: "/impressum" });
+  return (
   <LegalLayout title="Impressum" lastUpdated="February 14, 2026" toc={toc}>
     <section>
       <p>Information in accordance with Section 5 TMG (German Telemedia Act) and Article 13 of the EU E-Commerce Directive.</p>
@@ -66,6 +69,7 @@ const Impressum = () => (
       <p>We are not obligated and not willing to participate in dispute resolution proceedings before a consumer arbitration board.</p>
     </section>
   </LegalLayout>
-);
+  );
+};
 
 export default Impressum;

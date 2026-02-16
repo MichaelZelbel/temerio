@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +53,7 @@ const stubSnippets = [
 ];
 
 const UploadPage = () => {
+  useSeo({ title: "Upload", path: "/upload", noIndex: true });
   const { user } = useAuth();
   const { toast } = useToast();
   const [people, setPeople] = useState<Person[]>([]);

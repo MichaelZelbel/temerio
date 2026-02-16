@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useCallback } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { useLogActivity } from "@/hooks/useLogActivity";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,6 +37,7 @@ function passwordStrength(pw: string) {
 }
 
 const Settings = () => {
+  useSeo({ title: "Settings", path: "/settings", noIndex: true });
   return (
     <div className="space-y-6">
       <div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -42,6 +43,7 @@ const slideVariants = {
 };
 
 export default function Wizard() {
+  useSeo({ title: "Setup Wizard", path: "/wizard", noIndex: true });
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();

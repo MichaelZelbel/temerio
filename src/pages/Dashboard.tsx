@@ -33,7 +33,7 @@ const defaultChecklist: ChecklistItem[] = [
 ];
 
 const Dashboard = () => {
-  useSeo({ title: "Dashboard", path: "/dashboard" });
+  useSeo({ title: "Dashboard", path: "/dashboard", noIndex: true });
   const { user, profile, role } = useAuth();
   const { isSubscribed, tier } = useSubscription();
   const { toast } = useToast();
