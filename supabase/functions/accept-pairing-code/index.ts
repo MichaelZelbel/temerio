@@ -28,19 +28,31 @@ serve(async (req) => {
     }
     const userId = claims.claims.sub as string;
 
-    const { code, remote_base_url, remote_app } = await req.json();
-    if (!code || !remote_base_url || !remote_app) {
-      return new Response(JSON.stringify({ error: "code, remote_base_url, and remote_app are required" }), {
+    const { code } = await req.json();
+    if (!code) {
+      return new Response(JSON.stringify({ error: "code is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // Resolve remote URL from env — never from user input
+    const remoteBaseUrl = Deno.env.get("SYNC_REMOTE_APP_URL");
+    if (!remoteBaseUrl) {
+      console.error("SYNC_REMOTE_APP_URL is not configured");
+      return new Response(JSON.stringify({ error: "Sync is not configured on this deployment" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const remoteApp = "cherishly"; // hardcoded for Temerio side
+
     // Generate a shared secret for this connection
     const sharedSecret = generateSecret();
 
     // Call the remote app's consume-pairing-code endpoint
-    const consumeUrl = `${remote_base_url.replace(/\/$/, "")}/functions/v1/consume-pairing-code`;
+    const consumeUrl = `${remoteBaseUrl.replace(/\/+$/, "")}/functions/v1/consume-pairing-code`;
     const consumeResp = await fetch(consumeUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -62,7 +74,6 @@ serve(async (req) => {
     }
 
     const consumeData = await consumeResp.json();
-    const remoteUserId = consumeData.remote_user_id; // for reference
 
     // Store the connection locally
     const admin = createAdminClient();
@@ -72,8 +83,8 @@ serve(async (req) => {
       .from("sync_connections")
       .insert({
         user_id: userId,
-        remote_app,
-        remote_base_url: remote_base_url.replace(/\/$/, ""),
+        remote_app: remoteApp,
+        remote_base_url: remoteBaseUrl.replace(/\/+$/, ""),
         status: "active",
         shared_secret_hash: secretHash,
       })
@@ -88,7 +99,7 @@ serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ connection: conn, shared_secret: sharedSecret }), {
+    return new Response(JSON.stringify({ connection_id: conn.id, connection: conn, shared_secret: sharedSecret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

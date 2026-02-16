@@ -548,7 +548,7 @@ export type Database = {
           created_at: string
           id: string
           remote_app: string
-          remote_base_url: string
+          remote_base_url: string | null
           shared_secret_hash: string
           status: string
           updated_at: string
@@ -558,7 +558,7 @@ export type Database = {
           created_at?: string
           id?: string
           remote_app: string
-          remote_base_url: string
+          remote_base_url?: string | null
           shared_secret_hash: string
           status?: string
           updated_at?: string
@@ -568,7 +568,7 @@ export type Database = {
           created_at?: string
           id?: string
           remote_app?: string
-          remote_base_url?: string
+          remote_base_url?: string | null
           shared_secret_hash?: string
           status?: string
           updated_at?: string

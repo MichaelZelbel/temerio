@@ -13,7 +13,6 @@ import {
 interface Connection {
   id: string;
   remote_app: string;
-  remote_base_url: string;
   status: string;
   created_at: string;
 }
@@ -27,7 +26,7 @@ export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }
     setLoading(true);
     const { data, error } = await supabase
       .from("sync_connections")
-      .select("id, remote_app, remote_base_url, status, created_at")
+      .select("id, remote_app, status, created_at")
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Failed to load connections", description: error.message, variant: "destructive" });
@@ -84,8 +83,8 @@ export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }
                     <WifiOff className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{c.remote_app}</p>
-                    <p className="text-xs text-muted-foreground truncate">{c.remote_base_url}</p>
+                    <p className="text-sm font-medium truncate capitalize">{c.remote_app}</p>
+                    <p className="text-xs text-muted-foreground">Connected {new Date(c.created_at).toLocaleDateString()}</p>
                   </div>
                 </button>
                 <div className="flex items-center gap-2 shrink-0">
