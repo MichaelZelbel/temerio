@@ -310,12 +310,13 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
           )}
 
           <div className="flex gap-2">
-            <Input
+            <Textarea
               value={aiInput}
               onChange={(e) => setAiInput(e.target.value)}
-              placeholder="Describe your event…"
-              className="text-sm"
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleAiGenerate()}
+              placeholder="Describe your event in detail…"
+              className="text-sm min-h-[120px] resize-y"
+              rows={5}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleAiGenerate())}
               disabled={aiLoading}
             />
             <Button size="sm" onClick={handleAiGenerate} disabled={aiLoading || !aiInput.trim()}>
