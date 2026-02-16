@@ -55,7 +55,9 @@ const TimelinePage = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
+  const [documents, setDocuments] = useState<{ id: string; file_name: string }[]>([]);
   const [participantMap, setParticipantMap] = useState<Record<string, string[]>>({});
+  const [provenanceMap, setProvenanceMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -72,6 +74,7 @@ const TimelinePage = () => {
     confidence_date: number;
     confidence_truth: number;
     participantIds?: string[];
+    documentIds?: string[];
   } | null>(null);
 
   // Filters
@@ -89,13 +92,16 @@ const TimelinePage = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [eventsRes, peopleRes, partsRes] = await Promise.all([
+    const [eventsRes, peopleRes, partsRes, docsRes, provRes] = await Promise.all([
       supabase.from("events").select("*").eq("user_id", user.id).order("date_start", { ascending: false }),
       supabase.from("people").select("*").eq("user_id", user.id),
       supabase.from("event_participants").select("event_id, person_id"),
+      supabase.from("documents").select("id, file_name").eq("user_id", user.id).order("file_name"),
+      supabase.from("event_provenance").select("event_id, document_id").eq("user_id", user.id),
     ]);
     if (eventsRes.data) setEvents(eventsRes.data);
     if (peopleRes.data) setPeople(peopleRes.data);
+    if (docsRes.data) setDocuments(docsRes.data);
 
     const map: Record<string, string[]> = {};
     for (const row of partsRes.data || []) {
@@ -103,6 +109,13 @@ const TimelinePage = () => {
       map[row.event_id].push(row.person_id);
     }
     setParticipantMap(map);
+
+    const pMap: Record<string, string[]> = {};
+    for (const row of provRes.data || []) {
+      if (!pMap[row.event_id]) pMap[row.event_id] = [];
+      pMap[row.event_id].push(row.document_id);
+    }
+    setProvenanceMap(pMap);
     setLoading(false);
   };
 
@@ -160,6 +173,7 @@ const TimelinePage = () => {
 
   const openEditDialog = (event: TimelineEvent) => {
     const participantIds = (event.participants || []).map((p) => p.id);
+    const documentIds = provenanceMap[event.id] || [];
     setEditEventData({
       id: event.id,
       headline_en: event.headline_en,
@@ -171,6 +185,7 @@ const TimelinePage = () => {
       confidence_date: event.confidence_date,
       confidence_truth: event.confidence_truth,
       participantIds,
+      documentIds,
     });
     setDrawerOpen(false);
     setEditDialogOpen(true);
@@ -196,7 +211,7 @@ const TimelinePage = () => {
               </Button>
             </CollapsibleTrigger>
           </Collapsible>
-          <AddEventDialog people={people} onCreated={fetchData} />
+          <AddEventDialog people={people} documents={documents} onCreated={fetchData} />
         </div>
       </div>
 
@@ -258,7 +273,7 @@ const TimelinePage = () => {
           <p className="text-lg font-medium">No events yet</p>
           <p className="text-sm">Upload documents or add events manually to build your timeline.</p>
           <div className="flex justify-center gap-3 pt-2">
-            <AddEventDialog people={people} onCreated={fetchData} />
+            <AddEventDialog people={people} documents={documents} onCreated={fetchData} />
             <Button size="sm" variant="outline" asChild>
               <a href="/upload"><Upload className="mr-2 h-4 w-4" /> Upload documents</a>
             </Button>
@@ -387,6 +402,7 @@ const TimelinePage = () => {
       {/* Edit event dialog */}
       <AddEventDialog
         people={people}
+        documents={documents}
         onCreated={fetchData}
         editEvent={editEventData}
         open={editDialogOpen}
