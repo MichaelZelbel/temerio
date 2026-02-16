@@ -21,16 +21,16 @@ interface Person {
   relationship_label: string | null;
 }
 
-interface TimelineEvent {
+interface TimelineMoment {
   id: string;
-  date_start: string;
-  date_end: string | null;
-  headline_en: string;
-  description_en: string | null;
+  happened_at: string;
+  happened_end: string | null;
+  title: string;
+  description: string | null;
   status: string;
   confidence_date: number;
   confidence_truth: number;
-  importance: number;
+  impact_level: number;
   source: string;
   verified: boolean;
   is_potential_major: boolean;
@@ -53,24 +53,24 @@ const statusColors: Record<string, string> = {
 const TimelinePage = () => {
   useSeo({ title: "Timeline", path: "/timeline", noIndex: true });
   const { user } = useAuth();
-  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [moments, setMoments] = useState<TimelineMoment[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [documents, setDocuments] = useState<{ id: string; file_name: string }[]>([]);
   const [participantMap, setParticipantMap] = useState<Record<string, string[]>>({});
   const [provenanceMap, setProvenanceMap] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
-  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
+  const [selectedMoment, setSelectedMoment] = useState<TimelineMoment | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editEventData, setEditEventData] = useState<{
+  const [editMomentData, setEditMomentData] = useState<{
     id: string;
-    headline_en: string;
-    description_en: string | null;
-    date_start: string;
-    date_end: string | null;
+    title: string;
+    description: string | null;
+    happened_at: string;
+    happened_end: string | null;
     status: string;
-    importance: number;
+    impact_level: number;
     confidence_date: number;
     confidence_truth: number;
     participantIds?: string[];
@@ -78,7 +78,7 @@ const TimelinePage = () => {
   } | null>(null);
 
   // Filters
-  const [minImportance, setMinImportance] = useState(1);
+  const [minImpact, setMinImpact] = useState(1);
   const [minConfTruth, setMinConfTruth] = useState(0);
   const [minConfDate, setMinConfDate] = useState(0);
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -92,78 +92,78 @@ const TimelinePage = () => {
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
-    const [eventsRes, peopleRes, partsRes, docsRes, provRes] = await Promise.all([
-      supabase.from("events").select("*").eq("user_id", user.id).order("date_start", { ascending: false }),
+    const [momentsRes, peopleRes, partsRes, docsRes, provRes] = await Promise.all([
+      supabase.from("moments").select("*").eq("user_id", user.id).order("happened_at", { ascending: false }),
       supabase.from("people").select("*").eq("user_id", user.id),
-      supabase.from("event_participants").select("event_id, person_id"),
+      supabase.from("moment_participants").select("moment_id, person_id"),
       supabase.from("documents").select("id, file_name").eq("user_id", user.id).order("file_name"),
-      supabase.from("event_provenance").select("event_id, document_id").eq("user_id", user.id),
+      supabase.from("moment_provenance").select("moment_id, document_id").eq("user_id", user.id),
     ]);
-    if (eventsRes.data) setEvents(eventsRes.data);
+    if (momentsRes.data) setMoments(momentsRes.data as any);
     if (peopleRes.data) setPeople(peopleRes.data);
     if (docsRes.data) setDocuments(docsRes.data);
 
     const map: Record<string, string[]> = {};
-    for (const row of partsRes.data || []) {
-      if (!map[row.event_id]) map[row.event_id] = [];
-      map[row.event_id].push(row.person_id);
+    for (const row of (partsRes.data || []) as any[]) {
+      if (!map[row.moment_id]) map[row.moment_id] = [];
+      map[row.moment_id].push(row.person_id);
     }
     setParticipantMap(map);
 
     const pMap: Record<string, string[]> = {};
-    for (const row of provRes.data || []) {
-      if (!pMap[row.event_id]) pMap[row.event_id] = [];
-      pMap[row.event_id].push(row.document_id);
+    for (const row of (provRes.data || []) as any[]) {
+      if (!pMap[row.moment_id]) pMap[row.moment_id] = [];
+      pMap[row.moment_id].push(row.document_id);
     }
     setProvenanceMap(pMap);
     setLoading(false);
   };
 
-  const filteredEvents = useMemo(() => {
-    return events.filter((e) => {
-      if (e.importance < minImportance) return false;
-      if (e.confidence_truth < minConfTruth) return false;
-      if (e.confidence_date < minConfDate) return false;
-      if (statusFilter.length > 0 && !statusFilter.includes(e.status)) return false;
+  const filteredMoments = useMemo(() => {
+    return moments.filter((m) => {
+      if (m.impact_level < minImpact) return false;
+      if (m.confidence_truth < minConfTruth) return false;
+      if (m.confidence_date < minConfDate) return false;
+      if (statusFilter.length > 0 && !statusFilter.includes(m.status)) return false;
       if (personFilter.length > 0) {
-        const eventPersonIds = participantMap[e.id] || [];
-        if (!personFilter.some((pid) => eventPersonIds.includes(pid))) return false;
+        const momentPersonIds = participantMap[m.id] || [];
+        if (!personFilter.some((pid) => momentPersonIds.includes(pid))) return false;
       }
       return true;
     });
-  }, [events, minImportance, minConfTruth, minConfDate, statusFilter, personFilter, participantMap]);
+  }, [moments, minImpact, minConfTruth, minConfDate, statusFilter, personFilter, participantMap]);
 
   const groupedByYear = useMemo(() => {
-    const groups: Record<string, TimelineEvent[]> = {};
-    for (const e of filteredEvents) {
-      const year = e.date_start.split("-")[0];
+    const groups: Record<string, TimelineMoment[]> = {};
+    for (const m of filteredMoments) {
+      const year = m.happened_at.split("-")[0];
       if (!groups[year]) groups[year] = [];
-      groups[year].push(e);
+      groups[year].push(m);
     }
     return Object.entries(groups).sort(([a], [b]) => Number(b) - Number(a));
-  }, [filteredEvents]);
+  }, [filteredMoments]);
 
-  const openEventDrawer = async (event: TimelineEvent) => {
+  const openMomentDrawer = async (moment: TimelineMoment) => {
     const [partRes, provRes] = await Promise.all([
-      supabase.from("event_participants").select("person_id").eq("event_id", event.id),
-      supabase.from("event_provenance").select("id, snippet_en, page_number, document_id").eq("event_id", event.id),
+      supabase.from("moment_participants").select("person_id").eq("moment_id", moment.id),
+      supabase.from("moment_provenance").select("id, snippet_en, page_number, document_id").eq("moment_id", moment.id),
     ]);
-    const participantIds = (partRes.data || []).map((p) => p.person_id);
+    const participantIds = ((partRes.data || []) as any[]).map((p) => p.person_id);
     const participants = people.filter((p) => participantIds.includes(p.id));
 
-    const docIds = [...new Set((provRes.data || []).map((p) => p.document_id).filter(Boolean))] as string[];
+    const docIds = [...new Set(((provRes.data || []) as any[]).map((p) => p.document_id).filter(Boolean))] as string[];
     let docMap: Record<string, string> = {};
     if (docIds.length > 0) {
       const { data: docs } = await supabase.from("documents").select("id, file_name").in("id", docIds);
       for (const d of docs || []) docMap[d.id] = d.file_name;
     }
 
-    const provWithDocs = (provRes.data || []).map((prov) => ({
+    const provWithDocs = ((provRes.data || []) as any[]).map((prov) => ({
       ...prov,
       document: prov.document_id ? { file_name: docMap[prov.document_id] || "Unknown" } : null,
     }));
 
-    setSelectedEvent({ ...event, participants, provenance: provWithDocs });
+    setSelectedMoment({ ...moment, participants, provenance: provWithDocs });
     setDrawerOpen(true);
   };
 
@@ -171,24 +171,31 @@ const TimelinePage = () => {
     setPersonFilter((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
   };
 
-  const openEditDialog = (event: TimelineEvent) => {
-    const participantIds = (event.participants || []).map((p) => p.id);
-    const documentIds = provenanceMap[event.id] || [];
-    setEditEventData({
-      id: event.id,
-      headline_en: event.headline_en,
-      description_en: event.description_en,
-      date_start: event.date_start,
-      date_end: event.date_end,
-      status: event.status,
-      importance: event.importance,
-      confidence_date: event.confidence_date,
-      confidence_truth: event.confidence_truth,
+  const openEditDialog = (moment: TimelineMoment) => {
+    const participantIds = (moment.participants || []).map((p) => p.id);
+    const documentIds = provenanceMap[moment.id] || [];
+    setEditMomentData({
+      id: moment.id,
+      title: moment.title,
+      description: moment.description,
+      happened_at: moment.happened_at,
+      happened_end: moment.happened_end,
+      status: moment.status,
+      impact_level: moment.impact_level,
+      confidence_date: moment.confidence_date,
+      confidence_truth: moment.confidence_truth,
       participantIds,
       documentIds,
     });
     setDrawerOpen(false);
     setEditDialogOpen(true);
+  };
+
+  const impactLabels: Record<number, string> = {
+    1: "Minor",
+    2: "Noticeable",
+    3: "Strong Impact",
+    4: "Life-Shaping",
   };
 
   return (
@@ -197,7 +204,7 @@ const TimelinePage = () => {
         <div>
           <h3>Timeline</h3>
           <p className="text-sm text-muted-foreground">
-            {filteredEvents.length} event{filteredEvents.length !== 1 ? "s" : ""} shown
+            {filteredMoments.length} moment{filteredMoments.length !== 1 ? "s" : ""} shown
           </p>
         </div>
         <div className="flex gap-2">
@@ -222,8 +229,8 @@ const TimelinePage = () => {
             <CardContent className="pt-4 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-xs">Min Importance: {minImportance}</Label>
-                  <Slider value={[minImportance]} onValueChange={([v]) => setMinImportance(v)} min={1} max={10} step={1} />
+                  <Label className="text-xs">Min Impact: {minImpact} — {impactLabels[minImpact]}</Label>
+                  <Slider value={[minImpact]} onValueChange={([v]) => setMinImpact(v)} min={1} max={4} step={1} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Min Confidence (Truth): {minConfTruth}</Label>
@@ -253,7 +260,7 @@ const TimelinePage = () => {
               )}
 
               <div className="flex gap-2">
-                <Button variant="ghost" size="sm" onClick={() => { setMinImportance(1); setMinConfTruth(0); setMinConfDate(0); setStatusFilter([]); setPersonFilter([]); }}>
+                <Button variant="ghost" size="sm" onClick={() => { setMinImpact(1); setMinConfTruth(0); setMinConfDate(0); setStatusFilter([]); setPersonFilter([]); }}>
                   Show All
                 </Button>
               </div>
@@ -270,8 +277,8 @@ const TimelinePage = () => {
       ) : groupedByYear.length === 0 ? (
         <div className="text-center py-20 text-muted-foreground space-y-4">
           <Calendar className="mx-auto h-12 w-12 mb-4 opacity-40" />
-          <p className="text-lg font-medium">No events yet</p>
-          <p className="text-sm">Upload documents or add events manually to build your timeline.</p>
+          <p className="text-lg font-medium">No moments yet</p>
+          <p className="text-sm">Upload documents or add moments manually to build your timeline.</p>
           <div className="flex justify-center gap-3 pt-2">
             <AddEventDialog people={people} documents={documents} onCreated={fetchData} />
             <Button size="sm" variant="outline" asChild>
@@ -281,33 +288,33 @@ const TimelinePage = () => {
         </div>
       ) : (
         <div className="space-y-8">
-          {groupedByYear.map(([year, yearEvents]) => (
+          {groupedByYear.map(([year, yearMoments]) => (
             <div key={year}>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl font-bold text-foreground">{year}</span>
                 <Separator className="flex-1" />
-                <span className="text-xs text-muted-foreground">{yearEvents.length} event{yearEvents.length !== 1 ? "s" : ""}</span>
+                <span className="text-xs text-muted-foreground">{yearMoments.length} moment{yearMoments.length !== 1 ? "s" : ""}</span>
               </div>
               <div className="relative ml-4 border-l-2 border-border pl-6 space-y-4">
-                {yearEvents.map((event) => (
-                  <button key={event.id} onClick={() => openEventDrawer(event)} className="block w-full text-left group">
+                {yearMoments.map((moment) => (
+                  <button key={moment.id} onClick={() => openMomentDrawer(moment)} className="block w-full text-left group">
                     <div className="absolute -left-[9px] h-4 w-4 rounded-full border-2 border-background bg-primary" style={{ marginTop: "4px" }} />
                     <Card className="transition-shadow hover:shadow-md cursor-pointer">
                       <CardContent className="py-3 px-4">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate">{event.headline_en}</p>
+                            <p className="font-medium text-sm truncate">{moment.title}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {format(new Date(event.date_start), "MMM d, yyyy")}
-                              {event.date_end && ` — ${format(new Date(event.date_end), "MMM d, yyyy")}`}
+                              {format(new Date(moment.happened_at), "MMM d, yyyy")}
+                              {moment.happened_end && ` — ${format(new Date(moment.happened_end), "MMM d, yyyy")}`}
                             </p>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <Badge variant="outline" className={`text-[10px] px-1.5 ${statusColors[event.status] || ""}`}>
-                              {event.status.replace("_", " ")}
+                            <Badge variant="outline" className={`text-[10px] px-1.5 ${statusColors[moment.status] || ""}`}>
+                              {moment.status.replace("_", " ")}
                             </Badge>
-                            {event.source === "pdf" && <FileText className="h-3 w-3 text-muted-foreground" />}
-                            {event.verified && <CheckCircle2 className="h-3 w-3 text-success" />}
+                            {moment.source === "pdf" && <FileText className="h-3 w-3 text-muted-foreground" />}
+                            {moment.verified && <CheckCircle2 className="h-3 w-3 text-success" />}
                           </div>
                         </div>
                       </CardContent>
@@ -320,65 +327,65 @@ const TimelinePage = () => {
         </div>
       )}
 
-      {/* Event detail drawer */}
+      {/* Moment detail drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
         <SheetContent className="sm:max-w-lg overflow-y-auto">
-          {selectedEvent && (
+          {selectedMoment && (
             <>
               <SheetHeader>
-                <SheetTitle>{selectedEvent.headline_en}</SheetTitle>
+                <SheetTitle>{selectedMoment.title}</SheetTitle>
                 <SheetDescription>
-                  {format(new Date(selectedEvent.date_start), "MMMM d, yyyy")}
-                  {selectedEvent.date_end && ` — ${format(new Date(selectedEvent.date_end), "MMMM d, yyyy")}`}
+                  {format(new Date(selectedMoment.happened_at), "MMMM d, yyyy")}
+                  {selectedMoment.happened_end && ` — ${format(new Date(selectedMoment.happened_end), "MMMM d, yyyy")}`}
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-6 space-y-6">
-                <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedEvent)}>
-                  <Pencil className="mr-2 h-4 w-4" /> Edit Event
+                <Button variant="outline" size="sm" onClick={() => openEditDialog(selectedMoment)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit Moment
                 </Button>
 
-                {selectedEvent.description_en && (
-                  <p className="text-sm text-muted-foreground">{selectedEvent.description_en}</p>
+                {selectedMoment.description && (
+                  <p className="text-sm text-muted-foreground">{selectedMoment.description}</p>
                 )}
                 <div className="grid grid-cols-3 gap-3 text-center">
                   <div className="rounded-lg bg-muted p-3">
-                    <p className="text-xs text-muted-foreground">Importance</p>
-                    <p className="text-lg font-bold">{selectedEvent.importance}/10</p>
+                    <p className="text-xs text-muted-foreground">Impact</p>
+                    <p className="text-lg font-bold">{selectedMoment.impact_level}/4</p>
                   </div>
                   <div className="rounded-lg bg-muted p-3">
                     <p className="text-xs text-muted-foreground">Conf. Truth</p>
-                    <p className="text-lg font-bold">{selectedEvent.confidence_truth}/10</p>
+                    <p className="text-lg font-bold">{selectedMoment.confidence_truth}/10</p>
                   </div>
                   <div className="rounded-lg bg-muted p-3">
                     <p className="text-xs text-muted-foreground">Conf. Date</p>
-                    <p className="text-lg font-bold">{selectedEvent.confidence_date}/10</p>
+                    <p className="text-lg font-bold">{selectedMoment.confidence_date}/10</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
-                  <Badge variant="outline" className={statusColors[selectedEvent.status] || ""}>
-                    {selectedEvent.status.replace("_", " ")}
+                  <Badge variant="outline" className={statusColors[selectedMoment.status] || ""}>
+                    {selectedMoment.status.replace("_", " ")}
                   </Badge>
-                  <Badge variant="outline">Source: {selectedEvent.source}</Badge>
-                  {selectedEvent.verified && <Badge className="bg-success text-success-foreground">Verified</Badge>}
+                  <Badge variant="outline">Source: {selectedMoment.source}</Badge>
+                  {selectedMoment.verified && <Badge className="bg-success text-success-foreground">Verified</Badge>}
                 </div>
 
-                {selectedEvent.participants && selectedEvent.participants.length > 0 && (
+                {selectedMoment.participants && selectedMoment.participants.length > 0 && (
                   <div>
                     <h6 className="mb-2 flex items-center gap-2"><Users className="h-4 w-4" /> Participants</h6>
                     <div className="flex gap-2 flex-wrap">
-                      {selectedEvent.participants.map((p) => (
+                      {selectedMoment.participants.map((p) => (
                         <Badge key={p.id} variant="secondary">{p.name}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
 
-                {selectedEvent.provenance && selectedEvent.provenance.length > 0 && (
+                {selectedMoment.provenance && selectedMoment.provenance.length > 0 && (
                   <div>
                     <h6 className="mb-2 flex items-center gap-2"><FileText className="h-4 w-4" /> Provenance</h6>
                     <div className="space-y-2">
-                      {selectedEvent.provenance.map((prov) => (
+                      {selectedMoment.provenance.map((prov) => (
                         <Card key={prov.id}>
                           <CardContent className="py-2 px-3 text-xs">
                             {prov.document && (
@@ -399,12 +406,12 @@ const TimelinePage = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Edit event dialog */}
+      {/* Edit moment dialog */}
       <AddEventDialog
         people={people}
         documents={documents}
         onCreated={fetchData}
-        editEvent={editEventData}
+        editEvent={editMomentData}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
       />

@@ -15,15 +15,15 @@ export const pricingTiers: PricingTier[] = [
     description: "Explore Temerio manually, without AI.",
     price: 0,
     features: [
-      "Manual event creation",
+      "Manual moment creation",
       "Up to 1 Person",
-      "Up to 20 total events",
+      "Up to 20 total moments",
       "Basic timeline view",
-      "Importance & confidence filtering",
+      "Impact & confidence filtering",
     ],
     excluded: [
       "PDF uploads",
-      "AI event extraction",
+      "AI moment extraction",
       "AI credits",
       "Review Queue",
     ],
@@ -37,7 +37,7 @@ export const pricingTiers: PricingTier[] = [
     features: [
       "Unlimited People",
       "PDF uploads",
-      "AI event extraction from documents",
+      "AI moment extraction from documents",
       "10,000 AI credits per month",
       "Review Queue (Suggestions, Major, Merges)",
       "Provenance view (document snippets)",
@@ -59,12 +59,12 @@ export type ComparisonFeature = {
 
 export const comparisonFeatures: ComparisonFeature[] = [
   { name: "People", free: "1", pro: "Unlimited" },
-  { name: "Events", free: "Up to 20", pro: "Unlimited" },
-  { name: "Manual event creation", free: true, pro: true },
+  { name: "Moments", free: "Up to 20", pro: "Unlimited" },
+  { name: "Manual moment creation", free: true, pro: true },
   { name: "Timeline view", free: true, pro: true },
-  { name: "Importance & confidence filtering", free: true, pro: true },
+  { name: "Impact & confidence filtering", free: true, pro: true },
   { name: "PDF uploads", free: false, pro: true },
-  { name: "AI event extraction", free: false, pro: true },
+  { name: "AI moment extraction", free: false, pro: true },
   { name: "Monthly AI credits", free: false, pro: "10,000" },
   { name: "Review Queue", free: false, pro: true },
   { name: "Provenance view", free: false, pro: true },
@@ -82,12 +82,12 @@ export const pricingFAQs = [
   {
     question: "How do AI credits work?",
     answer:
-      "AI credits are used when Temerio extracts events from uploaded documents. Your credit allowance renews monthly with your Pro subscription.",
+      "AI credits are used when Temerio extracts moments from uploaded documents. Your credit allowance renews monthly with your Pro subscription.",
   },
   {
     question: "What happens when I run out of credits?",
     answer:
-      "You can still use Temerio manually — creating events, viewing your timeline, and managing people. AI extraction will pause until your credits renew next month.",
+      "You can still use Temerio manually — creating moments, viewing your timeline, and managing people. AI extraction will pause until your credits renew next month.",
   },
   {
     question: "What payment methods do you accept?",

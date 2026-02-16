@@ -21,26 +21,26 @@ interface Person {
   relationship_label: string | null;
 }
 
-interface EventDraft {
-  date_start: string;
-  date_end?: string | null;
-  headline_en: string;
-  description_en?: string | null;
+interface MomentDraft {
+  happened_at: string;
+  happened_end?: string | null;
+  title: string;
+  description?: string | null;
   status: string;
-  importance: number;
+  impact_level: number;
   confidence_date: number;
   confidence_truth: number;
   participants?: string[];
 }
 
-interface EditEventData {
+interface EditMomentData {
   id: string;
-  headline_en: string;
-  description_en: string | null;
-  date_start: string;
-  date_end: string | null;
+  title: string;
+  description: string | null;
+  happened_at: string;
+  happened_end: string | null;
   status: string;
-  importance: number;
+  impact_level: number;
   confidence_date: number;
   confidence_truth: number;
   participantIds?: string[];
@@ -56,8 +56,7 @@ interface AddEventDialogProps {
   people: Person[];
   documents?: DocOption[];
   onCreated: () => void;
-  /** If provided, opens in edit mode */
-  editEvent?: EditEventData | null;
+  editEvent?: EditMomentData | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -80,7 +79,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
   const [dateStart, setDateStart] = useState("");
   const [dateEnd, setDateEnd] = useState("");
   const [status, setStatus] = useState("unknown");
-  const [importance, setImportance] = useState(5);
+  const [impactLevel, setImpactLevel] = useState(2);
   const [confDate, setConfDate] = useState(5);
   const [confTruth, setConfTruth] = useState(5);
   const [saving, setSaving] = useState(false);
@@ -101,12 +100,12 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
   useEffect(() => {
     if (open) {
       if (editEvent) {
-        setHeadline(editEvent.headline_en);
-        setDescription(editEvent.description_en || "");
-        setDateStart(editEvent.date_start);
-        setDateEnd(editEvent.date_end || "");
+        setHeadline(editEvent.title);
+        setDescription(editEvent.description || "");
+        setDateStart(editEvent.happened_at.split("T")[0]);
+        setDateEnd(editEvent.happened_end ? editEvent.happened_end.split("T")[0] : "");
         setStatus(editEvent.status);
-        setImportance(editEvent.importance);
+        setImpactLevel(editEvent.impact_level);
         setConfDate(editEvent.confidence_date);
         setConfTruth(editEvent.confidence_truth);
         setMatchedPeople(editEvent.participantIds || []);
@@ -117,7 +116,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
         setHeadline("");
         setDescription("");
         setStatus("unknown");
-        setImportance(5);
+        setImpactLevel(2);
         setConfDate(5);
         setConfTruth(5);
         setMatchedPeople([]);
@@ -132,13 +131,13 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
     }
   }, [open, today, editEvent]);
 
-  const applyDraft = (draft: EventDraft) => {
-    setHeadline(draft.headline_en);
-    setDescription(draft.description_en || "");
-    setDateStart(draft.date_start);
-    setDateEnd(draft.date_end || "");
+  const applyDraft = (draft: MomentDraft) => {
+    setHeadline(draft.title);
+    setDescription(draft.description || "");
+    setDateStart(draft.happened_at);
+    setDateEnd(draft.happened_end || "");
     setStatus(draft.status);
-    setImportance(Math.max(1, Math.min(10, draft.importance)));
+    setImpactLevel(Math.max(1, Math.min(4, draft.impact_level)));
     setConfDate(Math.max(0, Math.min(10, draft.confidence_date)));
     setConfTruth(Math.max(0, Math.min(10, draft.confidence_truth)));
 
@@ -177,12 +176,12 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const draft = data.draft as EventDraft;
+      const draft = data.draft as MomentDraft;
       applyDraft(draft);
 
       setChatHistory([
         ...newHistory,
-        { role: "assistant", content: `Draft applied: "${draft.headline_en}" (importance ${draft.importance}/10)` },
+        { role: "assistant", content: `Draft applied: "${draft.title}" (impact ${draft.impact_level}/4)` },
       ]);
     } catch (err: any) {
       const msg = err?.message || "AI request failed";
@@ -195,7 +194,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
 
   const handleRefine = () => {
     setAiInput(
-      `Please refine the draft. Current values:\nHeadline: ${headline}\nDescription: ${description}\nDate: ${dateStart}\nStatus: ${status}\nImportance: ${importance}\n\nPlease improve it.`
+      `Please refine the draft. Current values:\nHeadline: ${headline}\nDescription: ${description}\nDate: ${dateStart}\nStatus: ${status}\nImpact Level: ${impactLevel}\n\nPlease improve it.`
     );
   };
 
@@ -203,47 +202,47 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
     if (!user || !headline || !dateStart) return;
     setSaving(true);
 
-    const eventPayload = {
-      headline_en: headline,
-      description_en: description || null,
-      date_start: dateStart,
-      date_end: dateEnd || null,
+    const momentPayload = {
+      title: headline,
+      description: description || null,
+      happened_at: dateStart,
+      happened_end: dateEnd || null,
       status,
-      importance,
+      impact_level: impactLevel,
       confidence_date: confDate,
       confidence_truth: confTruth,
     };
 
-    let eventId: string;
+    let momentId: string;
 
     if (isEditMode && editEvent) {
       const { error } = await supabase
-        .from("events")
-        .update(eventPayload)
+        .from("moments")
+        .update(momentPayload)
         .eq("id", editEvent.id);
 
       if (error) {
-        toast({ title: "Failed to update event", description: error.message, variant: "destructive" });
+        toast({ title: "Failed to update moment", description: error.message, variant: "destructive" });
         setSaving(false);
         return;
       }
-      eventId = editEvent.id;
+      momentId = editEvent.id;
 
       // Remove old participants, re-insert
-      await supabase.from("event_participants").delete().eq("event_id", eventId);
+      await supabase.from("moment_participants").delete().eq("moment_id", momentId);
     } else {
-      const { data: eventData, error } = await supabase
-        .from("events")
-        .insert({ ...eventPayload, user_id: user.id, source: "manual" })
+      const { data: momentData, error } = await supabase
+        .from("moments")
+        .insert({ ...momentPayload, user_id: user.id, source: "manual" })
         .select("id")
         .single();
 
-      if (error || !eventData) {
-        toast({ title: "Failed to create event", description: error?.message, variant: "destructive" });
+      if (error || !momentData) {
+        toast({ title: "Failed to create moment", description: error?.message, variant: "destructive" });
         setSaving(false);
         return;
       }
-      eventId = eventData.id;
+      momentId = momentData.id;
     }
 
     // Create new people that are selected
@@ -262,22 +261,22 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
     // Link all participants
     const allParticipantIds = [...matchedPeople, ...newPeopleIds];
     if (allParticipantIds.length > 0) {
-      await supabase.from("event_participants").insert(
-        allParticipantIds.map((pid) => ({ event_id: eventId, person_id: pid }))
+      await supabase.from("moment_participants").insert(
+        allParticipantIds.map((pid) => ({ moment_id: momentId, person_id: pid }))
       );
     }
 
     // Handle document provenance
     if (isEditMode) {
-      await supabase.from("event_provenance").delete().eq("event_id", eventId);
+      await supabase.from("moment_provenance").delete().eq("moment_id", momentId);
     }
     if (selectedDocIds.length > 0) {
-      await supabase.from("event_provenance").insert(
-        selectedDocIds.map((docId) => ({ user_id: user.id, event_id: eventId, document_id: docId }))
+      await supabase.from("moment_provenance").insert(
+        selectedDocIds.map((docId) => ({ user_id: user.id, moment_id: momentId, document_id: docId }))
       );
     }
 
-    toast({ title: isEditMode ? "Event updated" : "Event created" });
+    toast({ title: isEditMode ? "Moment updated" : "Moment created" });
     setOpen(false);
     onCreated();
     setSaving(false);
@@ -286,9 +285,9 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
   const dialogContent = (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{isEditMode ? "Edit Event" : "Add Event"}</DialogTitle>
+        <DialogTitle>{isEditMode ? "Edit Moment" : "Add Moment"}</DialogTitle>
         <DialogDescription>
-          {isEditMode ? "Update this timeline event." : "Create a new timeline event or use AI assistance."}
+          {isEditMode ? "Update this timeline moment." : "Create a new timeline moment or use AI assistance."}
         </DialogDescription>
       </DialogHeader>
 
@@ -333,7 +332,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
             <Textarea
               value={aiInput}
               onChange={(e) => setAiInput(e.target.value)}
-              placeholder="Describe your event in detail…"
+              placeholder="Describe your moment in detail…"
               className="text-sm min-h-[120px] resize-y"
               rows={5}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleAiGenerate())}
@@ -398,7 +397,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
           </div>
         </div>
 
-        <ImportanceSlider value={importance} onChange={setImportance} />
+        <ImportanceSlider value={impactLevel} onChange={setImpactLevel} />
 
         <div className="space-y-2">
           <Label>Confidence (Truth): {confTruth}</Label>
@@ -477,7 +476,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
       <DialogFooter>
         <Button onClick={handleSave} disabled={saving || !headline || !dateStart}>
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {isEditMode ? "Save Changes" : "Create Event"}
+          {isEditMode ? "Save Changes" : "Create Moment"}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -495,7 +494,7 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm">
-          <Plus className="mr-2 h-4 w-4" /> Add Event
+          <Plus className="mr-2 h-4 w-4" /> Add Moment
         </Button>
       </DialogTrigger>
       {dialogContent}

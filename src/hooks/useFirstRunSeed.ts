@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * On first login, ensures the user has at least one Person ("Self")
- * and one Event ("Account created") so the app never starts blank.
+ * and one Moment ("Temerio account created") so the app never starts blank.
  * Runs once per session; guards against duplicate inserts.
  */
 export function useFirstRunSeed() {
@@ -29,8 +29,6 @@ async function seed(userId: string, email: string | undefined, displayName: stri
 
   if (peopleCount === 0) {
     const name = displayName || (email ? email.split("@")[0] : "Me");
-    // Use upsert-like approach: insert only if no "Self" person exists yet
-    // to prevent race-condition duplicates
     const { data: existing } = await supabase
       .from("people")
       .select("id")
@@ -50,35 +48,35 @@ async function seed(userId: string, email: string | undefined, displayName: stri
     }
   }
 
-  // 2) Check if user already has any events
-  const { count: eventCount } = await supabase
-    .from("events")
+  // 2) Check if user already has any moments
+  const { count: momentCount } = await supabase
+    .from("moments")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId);
 
-  if (eventCount === 0) {
+  if (momentCount === 0) {
     const today = new Date().toISOString().split("T")[0];
-    const { data: event } = await supabase
-      .from("events")
+    const { data: moment } = await supabase
+      .from("moments")
       .insert({
         user_id: userId,
-        date_start: today,
-        headline_en: "Temerio account created",
-        description_en: "Created a Temerio account.",
+        happened_at: today,
+        title: "Temerio account created",
+        description: "Created a Temerio account.",
         status: "past_fact",
         confidence_date: 10,
         confidence_truth: 10,
-        importance: 8,
+        impact_level: 3,
         source: "manual",
         verified: true,
       })
       .select("id")
       .single();
 
-    // Link event to the default person if we just created one
-    if (event && defaultPersonId) {
-      await supabase.from("event_participants").insert({
-        event_id: event.id,
+    // Link moment to the default person if we just created one
+    if (moment && defaultPersonId) {
+      await supabase.from("moment_participants").insert({
+        moment_id: moment.id,
         person_id: defaultPersonId,
       });
     }
