@@ -48,6 +48,22 @@ serve(async (req) => {
 
     const remoteApp = "cherishly"; // hardcoded for Temerio side
 
+    // Check if user already has an active connection — only one allowed
+    const admin = createAdminClient();
+    const { data: existing } = await admin
+      .from("sync_connections")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return new Response(JSON.stringify({ error: "You already have an active Cherishly connection. Remove it first to re-pair." }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Generate a shared secret for this connection
     const sharedSecret = generateSecret();
 
@@ -76,7 +92,7 @@ serve(async (req) => {
     const consumeData = await consumeResp.json();
 
     // Store the connection locally
-    const admin = createAdminClient();
+    const secretHash = await hashSecret(sharedSecret);
     const secretHash = await hashSecret(sharedSecret);
 
     const { data: conn, error: connErr } = await admin

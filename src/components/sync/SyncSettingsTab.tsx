@@ -6,6 +6,7 @@ import { ConflictResolution } from "./ConflictResolution";
 
 export function SyncSettingsTab() {
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
+  const [hasActiveConnection, setHasActiveConnection] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handlePaired = useCallback(() => {
@@ -14,15 +15,15 @@ export function SyncSettingsTab() {
 
   return (
     <div className="space-y-6">
-      <PairingCodeSection onPaired={handlePaired} />
+      {!hasActiveConnection && <PairingCodeSection onPaired={handlePaired} />}
       <ConnectionList
         key={refreshKey}
         onSelect={(id) => setSelectedConnection(id)}
         onLoaded={(connections) => {
-          // Auto-select first active connection if none selected
-          if (!selectedConnection && connections.length > 0) {
-            const active = connections.find((c) => c.status === "active");
-            if (active) setSelectedConnection(active.id);
+          const active = connections.find((c) => c.status === "active");
+          setHasActiveConnection(!!active);
+          if (!selectedConnection && active) {
+            setSelectedConnection(active.id);
           }
         }}
       />
