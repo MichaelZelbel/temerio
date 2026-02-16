@@ -72,7 +72,7 @@ serve(async (req) => {
       .from("sync_person_links")
       .select("local_person_id, remote_person_uid")
       .eq("connection_id", connectionId)
-      .eq("is_enabled", true);
+      .eq("link_status", "linked");
 
     if (!links || links.length === 0) {
       return new Response(JSON.stringify({ events: [], last_outbox_id: since_outbox_id }), {

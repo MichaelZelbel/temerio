@@ -1,8 +1,13 @@
 import { useState, useCallback } from "react";
 import { PairingCodeSection } from "./PairingCodeSection";
 import { ConnectionList } from "./ConnectionList";
-import { PersonSyncControls } from "./PersonSyncControls";
+import { PeopleMappingSection } from "./PeopleMappingSection";
 import { ConflictResolution } from "./ConflictResolution";
+
+interface Connection {
+  id: string;
+  status: string;
+}
 
 export function SyncSettingsTab() {
   const [selectedConnection, setSelectedConnection] = useState<string | null>(null);
@@ -19,7 +24,7 @@ export function SyncSettingsTab() {
       <ConnectionList
         key={refreshKey}
         onSelect={(id) => setSelectedConnection(id)}
-        onLoaded={(connections) => {
+        onLoaded={(connections: Connection[]) => {
           const active = connections.find((c) => c.status === "active");
           setHasActiveConnection(!!active);
           if (!selectedConnection && active) {
@@ -30,7 +35,7 @@ export function SyncSettingsTab() {
 
       {selectedConnection && (
         <>
-          <PersonSyncControls connectionId={selectedConnection} />
+          <PeopleMappingSection connectionId={selectedConnection} />
           <ConflictResolution connectionId={selectedConnection} />
         </>
       )}

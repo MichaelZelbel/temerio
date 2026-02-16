@@ -58,7 +58,7 @@ serve(async (req) => {
       .from("sync_person_links")
       .select("local_person_id, remote_person_uid")
       .eq("connection_id", connectionId)
-      .eq("is_enabled", true);
+      .eq("link_status", "linked");
 
     const personMap = new Map<string, string>();
     for (const l of links || []) {

@@ -93,7 +93,6 @@ serve(async (req) => {
 
     // Store the connection locally
     const secretHash = await hashSecret(sharedSecret);
-    const secretHash = await hashSecret(sharedSecret);
 
     const { data: conn, error: connErr } = await admin
       .from("sync_connections")
@@ -103,6 +102,7 @@ serve(async (req) => {
         remote_base_url: remoteBaseUrl.replace(/\/+$/, ""),
         status: "active",
         shared_secret_hash: secretHash,
+        remote_connection_id: consumeData.connection_id || null,
       })
       .select("id, status, remote_app")
       .single();
