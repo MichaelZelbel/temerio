@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ function actionLabel(action: string, itemType: string): string {
 const PAGE_SIZE = 20;
 
 export default function ActivityPage() {
+  useSeo({ title: "Activity", path: "/activity", noIndex: true });
   const { user } = useAuth();
   const [events, setEvents] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -38,6 +39,7 @@ const typeBadgeColors: Record<string, string> = {
 };
 
 const ReviewPage = () => {
+  useSeo({ title: "Review", path: "/review", noIndex: true });
   const { user } = useAuth();
   const { toast } = useToast();
   const [items, setItems] = useState<ReviewItem[]>([]);

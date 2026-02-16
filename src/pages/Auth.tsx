@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
 }
 
 const Auth = () => {
+  useSeo({ title: "Sign In", description: "Sign in or create your Temerio account.", path: "/auth", noIndex: true });
   const { signIn, signUp, signInWithOAuth, user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,7 @@ interface Person {
 }
 
 const PeoplePage = () => {
+  useSeo({ title: "People", path: "/people", noIndex: true });
   const { user } = useAuth();
   const { toast } = useToast();
   const [people, setPeople] = useState<Person[]>([]);

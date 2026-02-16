@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSeo } from "@/hooks/useSeo";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 const DEFAULT_CREDITS = 10000;
 
 const UsagePage = () => {
+  useSeo({ title: "Usage", path: "/usage", noIndex: true });
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<{ id: string; period_start: string; period_end: string; credits_total: number } | null>(null);
