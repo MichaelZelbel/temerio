@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Copy, Link2 } from "lucide-react";
 
-export function PairingCodeSection() {
+export function PairingCodeSection({ onPaired }: { onPaired?: () => void }) {
   const { toast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [code, setCode] = useState<string | null>(null);
@@ -49,6 +49,7 @@ export function PairingCodeSection() {
       if (error) throw error;
       toast({ title: "Connected!", description: `Connection ${data.connection_id} established.` });
       setPairCode("");
+      onPaired?.();
     } catch (err: any) {
       toast({ title: "Pairing failed", description: err.message, variant: "destructive" });
     } finally {

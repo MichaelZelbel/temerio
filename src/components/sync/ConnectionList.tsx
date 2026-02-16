@@ -17,7 +17,7 @@ interface Connection {
   created_at: string;
 }
 
-export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }) {
+export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string) => void; onLoaded?: (connections: Connection[]) => void }) {
   const { toast } = useToast();
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,10 +31,12 @@ export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }
     if (error) {
       toast({ title: "Failed to load connections", description: error.message, variant: "destructive" });
     } else {
-      setConnections(data || []);
+      const conns = data || [];
+      setConnections(conns);
+      onLoaded?.(conns);
     }
     setLoading(false);
-  }, [toast]);
+  }, [toast, onLoaded]);
 
   useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
