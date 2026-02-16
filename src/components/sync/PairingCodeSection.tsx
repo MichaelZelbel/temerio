@@ -65,9 +65,9 @@ export function PairingCodeSection() {
       {/* Generate code (for Cherishly to enter) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Generate Pairing Code</CardTitle>
+          <CardTitle className="text-base">Generate Cherishly Pairing Code</CardTitle>
           <CardDescription>
-            Create a one-time code to share with another Temerio/Cherishly instance so it can connect to you.
+            Create a one-time code to share with Cherishly so it can connect to your Temerio account.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -96,10 +96,10 @@ export function PairingCodeSection() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Link2 className="h-4 w-4" /> Connect to Remote Instance
+            <Link2 className="h-4 w-4" /> Connect to Cherishly
           </CardTitle>
           <CardDescription>
-            Enter the pairing code shown in the other app.
+            Enter the pairing code shown in Cherishly.
           </CardDescription>
         </CardHeader>
         <CardContent>

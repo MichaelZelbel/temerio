@@ -53,8 +53,8 @@ export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-base">Active Connections</CardTitle>
-            <CardDescription>Linked Temerio / Cherishly instances.</CardDescription>
+            <CardTitle className="text-base">Cherishly Connection</CardTitle>
+            <CardDescription>Your link between Temerio and Cherishly.</CardDescription>
           </div>
           <Button variant="ghost" size="icon" onClick={fetchConnections} disabled={loading}>
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -67,7 +67,7 @@ export function ConnectionList({ onSelect }: { onSelect?: (id: string) => void }
             <Loader2 className="h-4 w-4 animate-spin" /> Loading…
           </div>
         ) : connections.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">No connections yet. Generate or enter a pairing code above.</p>
+          <p className="text-sm text-muted-foreground py-4">Not connected to Cherishly yet. Generate or enter a pairing code above.</p>
         ) : (
           <ul className="divide-y">
             {connections.map((c) => (
