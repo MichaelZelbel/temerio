@@ -181,31 +181,31 @@ const UploadPage = () => {
         const headline = pick[0];
         const status = pick[1];
         const randomDate = new Date(2020 + Math.floor(Math.random() * 6), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
-        const importance = Math.floor(Math.random() * 5) + 2; // 2-6
+        const impactLevel = Math.floor(Math.random() * 3) + 1; // 1-3
         const confTruth = Math.floor(Math.random() * 5) + 2;
         const confDate = Math.floor(Math.random() * 5) + 2;
-        const isPotentialMajor = importance >= 6;
+        const isPotentialMajor = impactLevel >= 3;
         const mergeAuto = Math.random() > 0.8;
 
-        const { data: event } = await supabase.from("events").insert({
+        const { data: moment } = await supabase.from("moments").insert({
           user_id: user.id,
-          headline_en: headline,
-          description_en: "Automatically extracted from uploaded document (stub data).",
-          date_start: randomDate.toISOString().split("T")[0],
+          title: headline,
+          description: "Automatically extracted from uploaded document (stub data).",
+          happened_at: randomDate.toISOString().split("T")[0],
           status,
           confidence_date: confDate,
           confidence_truth: confTruth,
-          importance,
+          impact_level: impactLevel,
           is_potential_major: isPotentialMajor,
           merge_auto: mergeAuto,
           source: "pdf",
         }).select().single();
 
-        if (event) {
+        if (moment) {
           // Add provenance
-          await supabase.from("event_provenance").insert({
+          await supabase.from("moment_provenance").insert({
             user_id: user.id,
-            event_id: event.id,
+            moment_id: moment.id,
             document_id: doc.id,
             page_number: Math.floor(Math.random() * 10) + 1,
             snippet_en: stubSnippets[Math.floor(Math.random() * stubSnippets.length)],
@@ -213,22 +213,22 @@ const UploadPage = () => {
 
           // Link participant if primary person set
           if (doc.primary_person_id) {
-            await supabase.from("event_participants").insert({
-              event_id: event.id,
+            await supabase.from("moment_participants").insert({
+              moment_id: moment.id,
               person_id: doc.primary_person_id,
             });
           }
 
           // Create review item based on type logic
           let reviewType = "suggestion";
-          if (importance >= 8 || isPotentialMajor) reviewType = "major";
+          if (impactLevel >= 4 || isPotentialMajor) reviewType = "major";
           else if (mergeAuto) reviewType = "merge";
 
           await supabase.from("review_queue").insert({
             user_id: user.id,
             type: reviewType,
-            event_id: event.id,
-            notes: `Auto-extracted event from "${doc.file_name}" needs review.`,
+            moment_id: moment.id,
+            notes: `Auto-extracted moment from "${doc.file_name}" needs review.`,
           });
         }
       }

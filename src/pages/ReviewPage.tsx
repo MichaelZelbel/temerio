@@ -14,13 +14,13 @@ interface ReviewItem {
   type: string;
   status: string;
   notes: string | null;
-  event_id: string | null;
+  moment_id: string | null;
   created_at: string;
-  event?: {
+  moment?: {
     id: string;
-    headline_en: string;
-    date_start: string;
-    importance: number;
+    title: string;
+    happened_at: string;
+    impact_level: number;
     confidence_truth: number;
     confidence_date: number;
     status: string;
@@ -54,30 +54,28 @@ const ReviewPage = () => {
     if (!user) return;
     setLoading(true);
 
-    // Fetch review items with event join
     const { data } = await supabase
       .from("review_queue")
-      .select("*, events(id, headline_en, date_start, importance, confidence_truth, confidence_date, status)")
+      .select("*, moments(id, title, happened_at, impact_level, confidence_truth, confidence_date, status)")
       .eq("user_id", user.id)
       .eq("status", "open")
       .order("created_at", { ascending: false });
 
     const rawItems = (data || []).map((item: any) => ({
       ...item,
-      event: item.events || null,
+      moment: item.moments || null,
     }));
 
-    // Batch fetch provenance for all event_ids
-    const eventIds = rawItems.map((i: any) => i.event_id).filter(Boolean) as string[];
+    // Batch fetch provenance for all moment_ids
+    const momentIds = rawItems.map((i: any) => i.moment_id).filter(Boolean) as string[];
     let provMap: Record<string, { snippet_en: string | null; page_number: number | null; document_id: string | null }> = {};
-    if (eventIds.length > 0) {
+    if (momentIds.length > 0) {
       const { data: provData } = await supabase
-        .from("event_provenance")
-        .select("event_id, snippet_en, page_number, document_id")
-        .in("event_id", eventIds);
-      // Take first provenance per event
-      for (const p of provData || []) {
-        if (!provMap[p.event_id]) provMap[p.event_id] = p;
+        .from("moment_provenance")
+        .select("moment_id, snippet_en, page_number, document_id")
+        .in("moment_id", momentIds);
+      for (const p of (provData || []) as any[]) {
+        if (!provMap[p.moment_id]) provMap[p.moment_id] = p;
       }
     }
 
@@ -91,7 +89,7 @@ const ReviewPage = () => {
 
     setItems(
       rawItems.map((item: any) => {
-        const prov = item.event_id ? provMap[item.event_id] : null;
+        const prov = item.moment_id ? provMap[item.moment_id] : null;
         return {
           ...item,
           provenance: prov ? {
@@ -112,9 +110,9 @@ const ReviewPage = () => {
       return;
     }
 
-    // If accepted, mark event as verified
-    if (action === "accepted" && item.event_id) {
-      await supabase.from("events").update({ verified: true }).eq("id", item.event_id);
+    // If accepted, mark moment as verified
+    if (action === "accepted" && item.moment_id) {
+      await supabase.from("moments").update({ verified: true }).eq("id", item.moment_id);
     }
 
     setItems((prev) => prev.filter((i) => i.id !== item.id));
@@ -142,14 +140,14 @@ const ReviewPage = () => {
                     <Badge variant="outline" className={`text-[10px] ${typeBadgeColors[item.type] || ""}`}>
                       {item.type}
                     </Badge>
-                    {item.event?.status && (
-                      <span className="text-[10px] text-muted-foreground capitalize">{item.event.status.replace("_", " ")}</span>
+                    {item.moment?.status && (
+                      <span className="text-[10px] text-muted-foreground capitalize">{item.moment.status.replace("_", " ")}</span>
                     )}
                   </div>
-                  <p className="font-medium text-sm">{item.event?.headline_en || "Unknown event"}</p>
-                  {item.event && (
+                  <p className="font-medium text-sm">{item.moment?.title || "Unknown moment"}</p>
+                  {item.moment && (
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.event.date_start} · Imp {item.event.importance}/10 · Truth {item.event.confidence_truth}/10 · Date {item.event.confidence_date}/10
+                      {item.moment.happened_at.split("T")[0]} · Impact {item.moment.impact_level}/4 · Truth {item.moment.confidence_truth}/10 · Date {item.moment.confidence_date}/10
                     </p>
                   )}
                   {item.notes && <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>}
@@ -164,7 +162,6 @@ const ReviewPage = () => {
                 </div>
               </div>
 
-              {/* Provenance snippet */}
               {item.provenance && item.provenance.snippet_en && (
                 <div className="bg-muted/50 rounded-md p-2 text-xs flex items-start gap-2">
                   <FileText className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />

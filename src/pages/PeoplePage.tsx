@@ -15,7 +15,7 @@ interface Person {
   id: string;
   name: string;
   relationship_label: string | null;
-  event_count?: number;
+  moment_count?: number;
 }
 
 const PeoplePage = () => {
@@ -41,13 +41,12 @@ const PeoplePage = () => {
     setLoading(true);
     const { data } = await supabase.from("people").select("*").eq("user_id", user.id).order("name");
     if (data) {
-      // Get event counts
       const counts: Record<string, number> = {};
-      const { data: parts } = await supabase.from("event_participants").select("person_id");
-      for (const p of parts || []) {
+      const { data: parts } = await supabase.from("moment_participants").select("person_id");
+      for (const p of (parts || []) as any[]) {
         counts[p.person_id] = (counts[p.person_id] || 0) + 1;
       }
-      setPeople(data.map((p) => ({ ...p, event_count: counts[p.id] || 0 })));
+      setPeople(data.map((p) => ({ ...p, moment_count: counts[p.id] || 0 })));
     }
     setLoading(false);
   };
@@ -108,7 +107,6 @@ const PeoplePage = () => {
         </Dialog>
       </div>
 
-      {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -126,7 +124,7 @@ const PeoplePage = () => {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       ) : people.length === 0 ? (
-      <div className="text-center py-16 text-muted-foreground space-y-3">
+        <div className="text-center py-16 text-muted-foreground space-y-3">
           <Users className="mx-auto h-12 w-12 mb-4 opacity-40" />
           <p className="text-lg font-medium">No people yet</p>
           <p className="text-sm">Your default person will be created automatically when you sign in.</p>
@@ -142,7 +140,7 @@ const PeoplePage = () => {
                 <div>
                   <p className="font-medium text-sm">{person.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {person.relationship_label || "No label"} · {person.event_count} event{person.event_count !== 1 ? "s" : ""}
+                    {person.relationship_label || "No label"} · {person.moment_count} moment{person.moment_count !== 1 ? "s" : ""}
                   </p>
                 </div>
                 <div className="flex gap-1">
@@ -154,7 +152,7 @@ const PeoplePage = () => {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete {person.name}?</AlertDialogTitle>
-                        <AlertDialogDescription>This will remove this person and unlink them from events.</AlertDialogDescription>
+                        <AlertDialogDescription>This will remove this person and unlink them from moments.</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>

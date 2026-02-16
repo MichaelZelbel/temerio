@@ -6,23 +6,17 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are an assistant that helps structure life events for a personal timeline app called Temerio.
+const SYSTEM_PROMPT = `You are an assistant that helps structure life moments for a personal timeline app called Temerio.
 
-The user will describe something that happened (or will happen). Your job is to extract a structured event from their description.
+The user will describe something that happened (or will happen). Your job is to extract a structured moment from their description.
 
-IMPORTANCE SCALE (1-10) — measures structural life impact, NOT emotion:
-1 = Almost no impact (routine call, groceries)
-2 = Small moment (dinner with parents, short trip)
-3 = Minor milestone (finishing a course, giving a presentation)
-4 = Meaningful event (starting a hobby seriously, moderate financial decision)
-5 = Clearly significant (moving apartments, getting promoted)
-6 = Major shift within a chapter (changing jobs, moving cities)
-7 = Clear turning point (marriage, founding a company)
-8 = Very rare structural change (immigration, becoming a parent)
-9 = Life-defining (one of the most important events in a life)
-10 = Foundational anchor (birth, a decision that permanently changed everything)
+IMPACT LEVEL (1-4) — measures structural life impact, NOT emotion:
+1 = Minor (routine activities, small errands, casual meetups)
+2 = Noticeable (starting a hobby, moderate financial decision, moving apartments)
+3 = Strong Impact (changing jobs, moving cities, marriage, founding a company)
+4 = Life-Shaping (immigration, becoming a parent, life-defining decisions)
 
-Default typical personal events to 2-5 unless clearly chapter-changing.
+Default typical personal events to 1-2 unless clearly chapter-changing.
 
 CONFIDENCE scales (0-10):
 - confidence_date: How certain is the date? 10 = exact date given, 5 = approximate, 0 = pure guess
@@ -37,7 +31,7 @@ STATUS values:
 - unknown: Unclear
 
 Rules:
-- Headline must be explicit and descriptive (not vague like "Something happened")
+- Title must be explicit and descriptive (not vague like "Something happened")
 - Description should be short and factual
 - If no date is mentioned, use today's date provided in the context
 - participants should list person names mentioned, can be empty array`;
@@ -75,17 +69,17 @@ serve(async (req) => {
           {
             type: "function",
             function: {
-              name: "draft_event",
-              description: "Return a structured timeline event draft based on the user's description.",
+              name: "draft_moment",
+              description: "Return a structured timeline moment draft based on the user's description.",
               parameters: {
                 type: "object",
                 properties: {
-                  date_start: { type: "string", description: "YYYY-MM-DD format" },
-                  date_end: { type: "string", description: "YYYY-MM-DD format or null" },
-                  headline_en: { type: "string", description: "Clear, descriptive headline" },
-                  description_en: { type: "string", description: "Short factual description" },
+                  happened_at: { type: "string", description: "YYYY-MM-DD format" },
+                  happened_end: { type: "string", description: "YYYY-MM-DD format or null" },
+                  title: { type: "string", description: "Clear, descriptive headline" },
+                  description: { type: "string", description: "Short factual description" },
                   status: { type: "string", enum: ["past_fact", "future_plan", "ongoing", "unknown"] },
-                  importance: { type: "integer", minimum: 1, maximum: 10 },
+                  impact_level: { type: "integer", minimum: 1, maximum: 4 },
                   confidence_date: { type: "integer", minimum: 0, maximum: 10 },
                   confidence_truth: { type: "integer", minimum: 0, maximum: 10 },
                   participants: {
@@ -94,13 +88,13 @@ serve(async (req) => {
                     description: "List of person names mentioned",
                   },
                 },
-                required: ["date_start", "headline_en", "status", "importance", "confidence_date", "confidence_truth"],
+                required: ["happened_at", "title", "status", "impact_level", "confidence_date", "confidence_truth"],
                 additionalProperties: false,
               },
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "draft_event" } },
+        tool_choice: { type: "function", function: { name: "draft_moment" } },
       }),
     });
 
@@ -128,9 +122,9 @@ serve(async (req) => {
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
 
-    if (!toolCall || toolCall.function.name !== "draft_event") {
+    if (!toolCall || toolCall.function.name !== "draft_moment") {
       console.error("Unexpected AI response:", JSON.stringify(data));
-      return new Response(JSON.stringify({ error: "AI did not return a valid event draft" }), {
+      return new Response(JSON.stringify({ error: "AI did not return a valid moment draft" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

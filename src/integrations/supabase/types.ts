@@ -189,144 +189,6 @@ export type Database = {
           },
         ]
       }
-      event_participants: {
-        Row: {
-          event_id: string
-          person_id: string
-        }
-        Insert: {
-          event_id: string
-          person_id: string
-        }
-        Update: {
-          event_id?: string
-          person_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_participants_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_participants_person_id_fkey"
-            columns: ["person_id"]
-            isOneToOne: false
-            referencedRelation: "people"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      event_provenance: {
-        Row: {
-          created_at: string
-          document_id: string
-          event_id: string
-          id: string
-          language: string | null
-          page_number: number | null
-          snippet_en: string | null
-          snippet_original: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          document_id: string
-          event_id: string
-          id?: string
-          language?: string | null
-          page_number?: number | null
-          snippet_en?: string | null
-          snippet_original?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          document_id?: string
-          event_id?: string
-          id?: string
-          language?: string | null
-          page_number?: number | null
-          snippet_en?: string | null
-          snippet_original?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_provenance_document_id_fkey"
-            columns: ["document_id"]
-            isOneToOne: false
-            referencedRelation: "documents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_provenance_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      events: {
-        Row: {
-          confidence_date: number
-          confidence_truth: number
-          created_at: string
-          date_end: string | null
-          date_start: string
-          description_en: string | null
-          headline_en: string
-          id: string
-          importance: number
-          is_potential_major: boolean
-          merge_auto: boolean
-          source: string
-          status: string
-          updated_at: string
-          user_id: string
-          verified: boolean
-        }
-        Insert: {
-          confidence_date?: number
-          confidence_truth?: number
-          created_at?: string
-          date_end?: string | null
-          date_start: string
-          description_en?: string | null
-          headline_en: string
-          id?: string
-          importance?: number
-          is_potential_major?: boolean
-          merge_auto?: boolean
-          source?: string
-          status?: string
-          updated_at?: string
-          user_id: string
-          verified?: boolean
-        }
-        Update: {
-          confidence_date?: number
-          confidence_truth?: number
-          created_at?: string
-          date_end?: string | null
-          date_start?: string
-          description_en?: string | null
-          headline_en?: string
-          id?: string
-          importance?: number
-          is_potential_major?: boolean
-          merge_auto?: boolean
-          source?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-          verified?: boolean
-        }
-        Relationships: []
-      }
       llm_usage_events: {
         Row: {
           completion_tokens: number
@@ -372,11 +234,173 @@ export type Database = {
         }
         Relationships: []
       }
+      moment_participants: {
+        Row: {
+          moment_id: string
+          person_id: string
+        }
+        Insert: {
+          moment_id: string
+          person_id: string
+        }
+        Update: {
+          moment_id?: string
+          person_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["moment_id"]
+            isOneToOne: false
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_participants_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moment_provenance: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          language: string | null
+          moment_id: string
+          page_number: number | null
+          snippet_en: string | null
+          snippet_original: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          language?: string | null
+          moment_id: string
+          page_number?: number | null
+          snippet_en?: string | null
+          snippet_original?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          language?: string | null
+          moment_id?: string
+          page_number?: number | null
+          snippet_en?: string | null
+          snippet_original?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_provenance_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_provenance_event_id_fkey"
+            columns: ["moment_id"]
+            isOneToOne: false
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      moments: {
+        Row: {
+          attachments: Json | null
+          category: string | null
+          confidence_date: number
+          confidence_truth: number
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          happened_at: string
+          happened_end: string | null
+          id: string
+          impact_level: number
+          is_potential_major: boolean
+          merge_auto: boolean
+          moment_uid: string
+          person_id: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          attachments?: Json | null
+          category?: string | null
+          confidence_date?: number
+          confidence_truth?: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          happened_at: string
+          happened_end?: string | null
+          id?: string
+          impact_level?: number
+          is_potential_major?: boolean
+          merge_auto?: boolean
+          moment_uid?: string
+          person_id?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean
+        }
+        Update: {
+          attachments?: Json | null
+          category?: string | null
+          confidence_date?: number
+          confidence_truth?: number
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          happened_at?: string
+          happened_end?: string | null
+          id?: string
+          impact_level?: number
+          is_potential_major?: boolean
+          merge_auto?: boolean
+          moment_uid?: string
+          person_id?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       people: {
         Row: {
           created_at: string
           id: string
           name: string
+          person_uid: string
           relationship_label: string | null
           updated_at: string
           user_id: string
@@ -385,6 +409,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          person_uid?: string
           relationship_label?: string | null
           updated_at?: string
           user_id: string
@@ -393,6 +418,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          person_uid?: string
           relationship_label?: string | null
           updated_at?: string
           user_id?: string
@@ -432,8 +458,8 @@ export type Database = {
       review_queue: {
         Row: {
           created_at: string
-          event_id: string | null
           id: string
+          moment_id: string | null
           notes: string | null
           status: string
           type: string
@@ -442,8 +468,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          event_id?: string | null
           id?: string
+          moment_id?: string | null
           notes?: string | null
           status?: string
           type: string
@@ -452,8 +478,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          event_id?: string | null
           id?: string
+          moment_id?: string | null
           notes?: string | null
           status?: string
           type?: string
@@ -463,9 +489,246 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "review_queue_event_id_fkey"
-            columns: ["event_id"]
+            columns: ["moment_id"]
             isOneToOne: false
-            referencedRelation: "events"
+            referencedRelation: "moments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_conflicts: {
+        Row: {
+          connection_id: string
+          created_at: string
+          entity_type: string
+          entity_uid: string
+          id: string
+          local_payload: Json
+          remote_payload: Json
+          resolution: string | null
+          resolved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          entity_type: string
+          entity_uid: string
+          id?: string
+          local_payload: Json
+          remote_payload: Json
+          resolution?: string | null
+          resolved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          entity_type?: string
+          entity_uid?: string
+          id?: string
+          local_payload?: Json
+          remote_payload?: Json
+          resolution?: string | null
+          resolved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_conflicts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_connections: {
+        Row: {
+          created_at: string
+          id: string
+          remote_app: string
+          remote_base_url: string
+          shared_secret_hash: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          remote_app: string
+          remote_base_url: string
+          shared_secret_hash: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          remote_app?: string
+          remote_base_url?: string
+          shared_secret_hash?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sync_cursors: {
+        Row: {
+          connection_id: string
+          id: string
+          last_pulled_outbox_id: number
+          last_pushed_outbox_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          id?: string
+          last_pulled_outbox_id?: number
+          last_pushed_outbox_id?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          id?: string
+          last_pulled_outbox_id?: number
+          last_pushed_outbox_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_cursors_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_outbox: {
+        Row: {
+          connection_id: string
+          delivered_at: string | null
+          delivery_attempts: number
+          entity_type: string
+          entity_uid: string
+          id: number
+          occurred_at: string
+          operation: string
+          payload: Json
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          delivered_at?: string | null
+          delivery_attempts?: number
+          entity_type: string
+          entity_uid: string
+          id?: number
+          occurred_at?: string
+          operation: string
+          payload?: Json
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          delivered_at?: string | null
+          delivery_attempts?: number
+          entity_type?: string
+          entity_uid?: string
+          id?: number
+          occurred_at?: string
+          operation?: string
+          payload?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_outbox_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_pairing_codes: {
+        Row: {
+          code: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sync_person_links: {
+        Row: {
+          connection_id: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          local_person_id: string
+          remote_person_uid: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          local_person_id: string
+          remote_person_uid: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          local_person_id?: string
+          remote_person_uid?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_person_links_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_person_links_local_person_id_fkey"
+            columns: ["local_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]

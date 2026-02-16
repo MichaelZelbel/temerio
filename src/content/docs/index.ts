@@ -27,7 +27,7 @@ export const docNav: DocGroup[] = [
       { slug: "ai-insights", title: "AI-Powered Insights" },
       { slug: "collaboration", title: "Seamless Collaboration" },
       { slug: "integrations", title: "Integrations" },
-      { slug: "importance", title: "Importance (1–10)" },
+      { slug: "importance", title: "Impact Level (1–4)" },
     ],
   },
   {
