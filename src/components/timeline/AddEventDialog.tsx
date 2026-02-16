@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2, Sparkles, Send, RotateCcw, Pencil } from "lucide-react";
+import { Plus, Loader2, Sparkles, Send, RotateCcw, Pencil, FileText } from "lucide-react";
 import ImportanceSlider from "@/components/timeline/ImportanceSlider";
 import { format } from "date-fns";
 
@@ -44,10 +44,17 @@ interface EditEventData {
   confidence_date: number;
   confidence_truth: number;
   participantIds?: string[];
+  documentIds?: string[];
+}
+
+interface DocOption {
+  id: string;
+  file_name: string;
 }
 
 interface AddEventDialogProps {
   people: Person[];
+  documents?: DocOption[];
   onCreated: () => void;
   /** If provided, opens in edit mode */
   editEvent?: EditEventData | null;
@@ -57,7 +64,7 @@ interface AddEventDialogProps {
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, onOpenChange }: AddEventDialogProps) => {
+const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: controlledOpen, onOpenChange }: AddEventDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const isControlled = controlledOpen !== undefined;
@@ -87,6 +94,7 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
   const [matchedPeople, setMatchedPeople] = useState<string[]>([]);
   const [suggestedNewPeople, setSuggestedNewPeople] = useState<string[]>([]);
   const [selectedNewPeople, setSelectedNewPeople] = useState<string[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -102,6 +110,7 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
         setConfDate(editEvent.confidence_date);
         setConfTruth(editEvent.confidence_truth);
         setMatchedPeople(editEvent.participantIds || []);
+        setSelectedDocIds(editEvent.documentIds || []);
       } else {
         setDateStart(today);
         setDateEnd("");
@@ -112,6 +121,7 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
         setConfDate(5);
         setConfTruth(5);
         setMatchedPeople([]);
+        setSelectedDocIds([]);
       }
       setAiMode(false);
       setAiInput("");
@@ -254,6 +264,16 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
     if (allParticipantIds.length > 0) {
       await supabase.from("event_participants").insert(
         allParticipantIds.map((pid) => ({ event_id: eventId, person_id: pid }))
+      );
+    }
+
+    // Handle document provenance
+    if (isEditMode) {
+      await supabase.from("event_provenance").delete().eq("event_id", eventId);
+    }
+    if (selectedDocIds.length > 0) {
+      await supabase.from("event_provenance").insert(
+        selectedDocIds.map((docId) => ({ user_id: user.id, event_id: eventId, document_id: docId }))
       );
     }
 
@@ -423,6 +443,30 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
                     }}
                   />
                   <span className="text-sm">{name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Document picker */}
+        {documents.length > 0 && (
+          <div className="space-y-2">
+            <Label className="text-xs flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" /> Linked Documents
+            </Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+              {documents.map((doc) => (
+                <label key={doc.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={selectedDocIds.includes(doc.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedDocIds((prev) =>
+                        checked ? [...prev, doc.id] : prev.filter((id) => id !== doc.id)
+                      );
+                    }}
+                  />
+                  {doc.file_name}
                 </label>
               ))}
             </div>
