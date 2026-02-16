@@ -398,7 +398,9 @@ export type Database = {
       people: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
+          merged_into_person_id: string | null
           name: string
           person_uid: string
           relationship_label: string | null
@@ -407,7 +409,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          merged_into_person_id?: string | null
           name: string
           person_uid?: string
           relationship_label?: string | null
@@ -416,14 +420,24 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
+          merged_into_person_id?: string | null
           name?: string
           person_uid?: string
           relationship_label?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "people_merged_into_person_id_fkey"
+            columns: ["merged_into_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -498,6 +512,7 @@ export type Database = {
       }
       sync_conflicts: {
         Row: {
+          conflict_type: string
           connection_id: string
           created_at: string
           entity_type: string
@@ -510,6 +525,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          conflict_type?: string
           connection_id: string
           created_at?: string
           entity_type: string
@@ -522,6 +538,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          conflict_type?: string
           connection_id?: string
           created_at?: string
           entity_type?: string
@@ -549,6 +566,7 @@ export type Database = {
           id: string
           remote_app: string
           remote_base_url: string | null
+          remote_connection_id: string | null
           shared_secret_hash: string
           status: string
           updated_at: string
@@ -559,6 +577,7 @@ export type Database = {
           id?: string
           remote_app: string
           remote_base_url?: string | null
+          remote_connection_id?: string | null
           shared_secret_hash: string
           status?: string
           updated_at?: string
@@ -569,6 +588,7 @@ export type Database = {
           id?: string
           remote_app?: string
           remote_base_url?: string | null
+          remote_connection_id?: string | null
           shared_secret_hash?: string
           status?: string
           updated_at?: string
@@ -604,6 +624,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "sync_cursors_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_merge_log: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          entity_type: string
+          id: string
+          merge_payload: Json
+          merged_id: string
+          primary_id: string
+          undone_at: string | null
+          user_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          entity_type: string
+          id?: string
+          merge_payload?: Json
+          merged_id: string
+          primary_id: string
+          undone_at?: string | null
+          user_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          entity_type?: string
+          id?: string
+          merge_payload?: Json
+          merged_id?: string
+          primary_id?: string
+          undone_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_merge_log_connection_id_fkey"
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "sync_connections"
@@ -685,32 +749,98 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_person_candidates: {
+        Row: {
+          confidence: number
+          connection_id: string
+          created_at: string
+          id: string
+          local_person_id: string
+          reasons: Json | null
+          remote_person_name: string | null
+          remote_person_uid: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          connection_id: string
+          created_at?: string
+          id?: string
+          local_person_id: string
+          reasons?: Json | null
+          remote_person_name?: string | null
+          remote_person_uid: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          connection_id?: string
+          created_at?: string
+          id?: string
+          local_person_id?: string
+          reasons?: Json | null
+          remote_person_name?: string | null
+          remote_person_uid?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_person_candidates_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_person_candidates_local_person_id_fkey"
+            columns: ["local_person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_person_links: {
         Row: {
+          confidence: number | null
           connection_id: string
           created_at: string
           id: string
           is_enabled: boolean
+          link_source: string
+          link_status: string
           local_person_id: string
           remote_person_uid: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          confidence?: number | null
           connection_id: string
           created_at?: string
           id?: string
           is_enabled?: boolean
+          link_source?: string
+          link_status?: string
           local_person_id: string
           remote_person_uid: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          confidence?: number | null
           connection_id?: string
           created_at?: string
           id?: string
           is_enabled?: boolean
+          link_source?: string
+          link_status?: string
           local_person_id?: string
           remote_person_uid?: string
           updated_at?: string
