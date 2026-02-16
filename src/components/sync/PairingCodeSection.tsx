@@ -13,7 +13,6 @@ export function PairingCodeSection() {
   const [code, setCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
 
-  const [remoteUrl, setRemoteUrl] = useState("");
   const [pairCode, setPairCode] = useState("");
   const [accepting, setAccepting] = useState(false);
 
@@ -41,15 +40,14 @@ export function PairingCodeSection() {
 
   const handleAccept = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!remoteUrl || !pairCode) return;
+    if (!pairCode) return;
     setAccepting(true);
     try {
       const { data, error } = await supabase.functions.invoke("accept-pairing-code", {
-        body: { remote_base_url: remoteUrl.replace(/\/+$/, ""), code: pairCode },
+        body: { code: pairCode },
       });
       if (error) throw error;
       toast({ title: "Connected!", description: `Connection ${data.connection_id} established.` });
-      setRemoteUrl("");
       setPairCode("");
     } catch (err: any) {
       toast({ title: "Pairing failed", description: err.message, variant: "destructive" });
@@ -101,22 +99,11 @@ export function PairingCodeSection() {
             <Link2 className="h-4 w-4" /> Connect to Remote Instance
           </CardTitle>
           <CardDescription>
-            Enter the base URL and pairing code from the remote Temerio/Cherishly instance.
+            Enter the pairing code shown in the other app.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAccept} className="space-y-4 max-w-md">
-            <div className="space-y-2">
-              <Label htmlFor="remote-url">Remote Base URL</Label>
-              <Input
-                id="remote-url"
-                placeholder="https://xyzproject.supabase.co"
-                value={remoteUrl}
-                onChange={(e) => setRemoteUrl(e.target.value)}
-                type="url"
-                required
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="pair-code">Pairing Code</Label>
               <Input
@@ -129,7 +116,7 @@ export function PairingCodeSection() {
                 required
               />
             </div>
-            <Button type="submit" disabled={accepting}>
+            <Button type="submit" disabled={accepting || pairCode.length < 6}>
               {accepting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Connect
             </Button>
