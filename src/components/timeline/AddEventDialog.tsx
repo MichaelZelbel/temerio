@@ -266,9 +266,9 @@ const AddEventDialog = ({ people, onCreated, editEvent, open: controlledOpen, on
   const dialogContent = (
     <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{isEditMode ? "Edit Event" : "Add Manual Event"}</DialogTitle>
+        <DialogTitle>{isEditMode ? "Edit Event" : "Add Event"}</DialogTitle>
         <DialogDescription>
-          {isEditMode ? "Update this timeline event." : "Create a new timeline event manually or with AI assistance."}
+          {isEditMode ? "Update this timeline event." : "Create a new timeline event or use AI assistance."}
         </DialogDescription>
       </DialogHeader>
 
