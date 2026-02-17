@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.sync-disconnect]
 verify_jwt = false
+
+[functions.sync-create-local-person]
+verify_jwt = false
