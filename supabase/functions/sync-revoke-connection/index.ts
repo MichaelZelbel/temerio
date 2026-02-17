@@ -4,6 +4,9 @@ import { createAdminClient } from "../_shared/supabase-admin.ts";
 import { verifyHmac } from "../_shared/hmac.ts";
 
 // Server-to-server: HMAC authenticated. Called by the remote app to revoke a connection.
+// The x-sync-connection-id contains the REMOTE app's connection ID, not ours.
+// We identify the correct local connection by verifying the HMAC signature
+// against each active connection's shared_secret_hash.
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -23,58 +26,50 @@ serve(async (req) => {
     const bodyText = await req.text();
     const admin = createAdminClient();
 
-    // Look up connection by id first, then by remote_connection_id as fallback
-    let conn: { id: string; user_id: string; shared_secret_hash: string; status: string } | null = null;
-    let connErr: any = null;
-
-    const { data: byId, error: byIdErr } = await admin
+    // Fetch all active connections
+    const { data: activeConnections, error: fetchErr } = await admin
       .from("sync_connections")
       .select("id, user_id, shared_secret_hash, status")
-      .eq("id", connectionId)
-      .maybeSingle();
+      .eq("status", "active");
 
-    if (byId) {
-      conn = byId;
-    } else {
-      // Fallback: the sender may have sent their own connection ID,
-      // which we store as remote_connection_id on our side
-      const { data: byRemote, error: byRemoteErr } = await admin
-        .from("sync_connections")
-        .select("id, user_id, shared_secret_hash, status")
-        .eq("remote_connection_id", connectionId)
-        .maybeSingle();
-      conn = byRemote;
-      connErr = byRemoteErr;
-    }
-
-    if (connErr || !conn) {
-      return new Response(JSON.stringify({ error: "Connection not found" }), {
-        status: 404,
+    if (fetchErr) {
+      console.error("Failed to fetch active connections:", fetchErr);
+      return new Response(JSON.stringify({ error: "Internal error" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verify HMAC
-    const valid = await verifyHmac(conn.shared_secret_hash, bodyText, signature);
-    if (!valid) {
+    // No active connections — idempotent success
+    if (!activeConnections || activeConnections.length === 0) {
+      return new Response(JSON.stringify({ ok: true, already_revoked: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Find the connection whose shared_secret_hash matches the HMAC signature
+    let matchedConn: typeof activeConnections[number] | null = null;
+    for (const conn of activeConnections) {
+      if (!conn.shared_secret_hash) continue;
+      const valid = await verifyHmac(conn.shared_secret_hash, bodyText, signature);
+      if (valid) {
+        matchedConn = conn;
+        break;
+      }
+    }
+
+    if (!matchedConn) {
       return new Response(JSON.stringify({ error: "Invalid signature" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Already revoked — idempotent success
-    if (conn.status === "revoked") {
-      return new Response(JSON.stringify({ ok: true, already_revoked: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Revoke
+    // Revoke the matched connection
     const { error: updateErr } = await admin
       .from("sync_connections")
       .update({ status: "revoked" })
-      .eq("id", conn.id);
+      .eq("id", matchedConn.id);
 
     if (updateErr) {
       console.error("Failed to revoke connection:", updateErr);
