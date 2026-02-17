@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -14,8 +14,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Loader2, RefreshCw, Link2, Unlink, Ban, Sparkles, Merge, Undo2,
-  Search, UserPlus, Check, X, AlertTriangle, Info,
+  Search, UserPlus, Check, X, Info, ChevronDown, Download, Upload,
+  ArrowRight, Settings2,
 } from "lucide-react";
 
 /* ── Types ── */
@@ -34,36 +38,53 @@ interface MergeLog {
 }
 
 /* ── Name similarity ── */
-function nameSimilarity(a: string, b: string): { score: number; reasons: Record<string, boolean | number> } {
-  const la = a.toLowerCase().trim();
-  const lb = b.toLowerCase().trim();
-  if (la === lb) return { score: 0.95, reasons: { name_exact: true } };
-  if (la.startsWith(lb) || lb.startsWith(la)) return { score: 0.8, reasons: { name_prefix: true } };
-  // Simple character overlap ratio
+function normalize(s: string): string {
+  return s.toLowerCase().trim().replace(/\s+/g, " ");
+}
+
+function nameSimilarity(a: string, b: string): { score: number; reason: string } {
+  const la = normalize(a);
+  const lb = normalize(b);
+  if (la === lb) return { score: 0.95, reason: "Exact match" };
+
+  // Check sorted tokens (handles "John Smith" vs "Smith John")
+  const tokA = la.split(" ").sort().join(" ");
+  const tokB = lb.split(" ").sort().join(" ");
+  if (tokA === tokB) return { score: 0.9, reason: "Name reordered" };
+
+  // Prefix match
+  if (la.startsWith(lb) || lb.startsWith(la)) return { score: 0.8, reason: "Prefix match" };
+
+  // Jaccard on characters
   const setA = new Set(la.split(""));
   const setB = new Set(lb.split(""));
   const intersection = [...setA].filter((c) => setB.has(c)).length;
   const union = new Set([...setA, ...setB]).size;
   const jaccard = union > 0 ? intersection / union : 0;
-  if (jaccard > 0.6) return { score: Math.min(0.75, jaccard), reasons: { name_similarity: Math.round(jaccard * 100) / 100 } };
-  return { score: 0, reasons: {} };
+  if (jaccard > 0.65) return { score: Math.min(0.75, jaccard), reason: `${Math.round(jaccard * 100)}% similar` };
+
+  return { score: 0, reason: "" };
 }
 
 /* ── Component ── */
 export function PeopleMappingSection({ connectionId }: { connectionId: string }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const autoRanRef = useRef(false);
 
   const [localPeople, setLocalPeople] = useState<LocalPerson[]>([]);
   const [remotePeople, setRemotePeople] = useState<RemotePerson[]>([]);
   const [links, setLinks] = useState<PersonLink[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [mergeLogs, setMergeLogs] = useState<MergeLog[]>([]);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [fetchingRemote, setFetchingRemote] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Merge state
   const [mergeA, setMergeA] = useState("");
@@ -74,7 +95,7 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
   const fetchLocalData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [peopleRes, linksRes, candidatesRes, mergeRes] = await Promise.all([
+    const [peopleRes, linksRes, candidatesRes, mergeRes, cacheRes] = await Promise.all([
       supabase.from("people").select("id, name, person_uid, relationship_label")
         .eq("user_id", user.id).is("merged_into_person_id" as any, null).is("deleted_at" as any, null).order("name"),
       supabase.from("sync_person_links").select("id, local_person_id, remote_person_uid, link_status, link_source, is_enabled")
@@ -83,34 +104,185 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
         .eq("connection_id", connectionId).eq("status", "open") as any,
       supabase.from("sync_merge_log" as any).select("*")
         .eq("user_id", user.id).is("undone_at", null).order("created_at", { ascending: false }).limit(10) as any,
+      supabase.from("sync_remote_people_cache" as any).select("remote_person_uid, name, relationship_label, fetched_at")
+        .eq("connection_id", connectionId) as any,
     ]);
     setLocalPeople((peopleRes.data || []) as LocalPerson[]);
     setLinks((linksRes.data || []) as PersonLink[]);
     setCandidates((candidatesRes.data || []) as unknown as Candidate[]);
     setMergeLogs((mergeRes.data || []) as unknown as MergeLog[]);
+
+    const cachedRemote = (cacheRes.data || []) as any[];
+    if (cachedRemote.length > 0) {
+      setRemotePeople(cachedRemote.map((r: any) => ({
+        person_uid: r.remote_person_uid,
+        name: r.name,
+        relationship_label: r.relationship_label,
+      })));
+      const newest = cachedRemote.reduce((a: any, b: any) =>
+        new Date(a.fetched_at) > new Date(b.fetched_at) ? a : b
+      );
+      setLastFetched(new Date(newest.fetched_at));
+    }
+
     setLoading(false);
   }, [connectionId, user]);
 
   useEffect(() => { fetchLocalData(); }, [fetchLocalData]);
 
   /* ── Fetch remote people ── */
-  const fetchRemotePeople = async () => {
+  const fetchRemotePeople = useCallback(async () => {
+    if (!user) return;
     setFetchingRemote(true);
     try {
       const { data, error } = await supabase.functions.invoke("sync-list-remote-people", {
         body: { connection_id: connectionId },
       });
       if (error) throw error;
-      setRemotePeople(data?.people || []);
-      toast({ title: `Fetched ${(data?.people || []).length} people from Cherishly` });
+      const people = (data?.people || []) as RemotePerson[];
+      setRemotePeople(people);
+      setLastFetched(new Date());
+
+      // Persist to cache
+      if (people.length > 0) {
+        // Delete old cache for this connection
+        await supabase.from("sync_remote_people_cache" as any)
+          .delete().eq("connection_id", connectionId);
+
+        // Insert new
+        const rows = people.map((p) => ({
+          user_id: user.id,
+          connection_id: connectionId,
+          remote_person_uid: p.person_uid,
+          name: p.name,
+          relationship_label: p.relationship_label || null,
+        }));
+        await supabase.from("sync_remote_people_cache" as any).insert(rows);
+      }
+
+      return people;
     } catch (err: any) {
       toast({ title: "Failed to fetch remote people", description: err.message, variant: "destructive" });
+      return null;
     } finally {
       setFetchingRemote(false);
     }
+  }, [connectionId, user, toast]);
+
+  /* ── Build suggestions (client-side) ── */
+  const buildSuggestions = useCallback(async (
+    localP: LocalPerson[],
+    remoteP: RemotePerson[],
+    currentLinks: PersonLink[],
+  ) => {
+    if (!user || remoteP.length === 0) return;
+    setSuggesting(true);
+
+    const linkedRemoteUids = new Set(currentLinks.filter((l) => l.link_status === "linked").map((l) => l.remote_person_uid));
+    const linkedLocalIds = new Set(currentLinks.filter((l) => l.link_status === "linked").map((l) => l.local_person_id));
+    const excludedLocalIds = new Set(currentLinks.filter((l) => l.link_status === "excluded").map((l) => l.local_person_id));
+
+    const newCandidates: any[] = [];
+
+    for (const local of localP) {
+      if (linkedLocalIds.has(local.id) || excludedLocalIds.has(local.id)) continue;
+
+      let bestMatch: { remote: RemotePerson; score: number; reason: string } | null = null;
+
+      for (const remote of remoteP) {
+        if (linkedRemoteUids.has(remote.person_uid)) continue;
+        const { score, reason } = nameSimilarity(local.name, remote.name);
+        if (score >= 0.6 && (!bestMatch || score > bestMatch.score)) {
+          bestMatch = { remote, score, reason };
+        }
+      }
+
+      if (bestMatch) {
+        newCandidates.push({
+          user_id: user.id,
+          connection_id: connectionId,
+          local_person_id: local.id,
+          remote_person_uid: bestMatch.remote.person_uid,
+          remote_person_name: bestMatch.remote.name,
+          confidence: bestMatch.score,
+          reasons: { reason: bestMatch.reason },
+          status: "open",
+        });
+      }
+    }
+
+    // Clear old open candidates, insert new
+    await supabase.from("sync_person_candidates" as any).delete()
+      .eq("connection_id", connectionId).eq("status", "open");
+
+    if (newCandidates.length > 0) {
+      await supabase.from("sync_person_candidates" as any).insert(newCandidates);
+    }
+
+    // Refetch candidates
+    const { data: freshCandidates } = await supabase.from("sync_person_candidates" as any)
+      .select("*").eq("connection_id", connectionId).eq("status", "open") as any;
+    setCandidates((freshCandidates || []) as unknown as Candidate[]);
+
+    setSuggesting(false);
+  }, [connectionId, user]);
+
+  /* ── Auto-run on page load ── */
+  useEffect(() => {
+    if (loading || autoRanRef.current || !user) return;
+
+    const run = async () => {
+      autoRanRef.current = true;
+
+      // Check if cache is empty or stale (>1 hour)
+      const isStale = !lastFetched || (Date.now() - lastFetched.getTime() > 3600_000);
+
+      let remote = remotePeople;
+      if (isStale || remote.length === 0) {
+        const fetched = await fetchRemotePeople();
+        if (fetched) remote = fetched;
+      }
+
+      if (remote.length > 0) {
+        await buildSuggestions(localPeople, remote, links);
+      }
+    };
+
+    run();
+  }, [loading, user, localPeople, remotePeople, links, lastFetched, fetchRemotePeople, buildSuggestions]);
+
+  /* ── Accept / reject candidate ── */
+  const acceptCandidate = async (candidate: Candidate) => {
+    setActionLoading(candidate.id);
+    try {
+      const { error } = await supabase.from("sync_person_links").upsert({
+        user_id: user!.id,
+        connection_id: connectionId,
+        local_person_id: candidate.local_person_id,
+        remote_person_uid: candidate.remote_person_uid,
+        link_status: "linked",
+        link_source: "suggestion",
+        is_enabled: true,
+      } as any, { onConflict: "user_id,connection_id,local_person_id" } as any);
+      if (error) throw error;
+
+      await supabase.from("sync_person_candidates" as any).update({ status: "accepted" }).eq("id", candidate.id);
+      setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
+      toast({ title: "Person linked" });
+      await fetchLocalData();
+    } catch (err: any) {
+      toast({ title: "Link failed", description: err.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  /* ── Link person ── */
+  const rejectCandidate = async (candidateId: string) => {
+    await supabase.from("sync_person_candidates" as any).update({ status: "rejected" }).eq("id", candidateId);
+    setCandidates((prev) => prev.filter((c) => c.id !== candidateId));
+  };
+
+  /* ── Link person manually ── */
   const linkPerson = async (localPersonId: string, remotePersonUid: string) => {
     setActionLoading(localPersonId);
     try {
@@ -148,7 +320,7 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     }
   };
 
-  /* ── Exclude person ── */
+  /* ── Exclude / include ── */
   const excludePerson = async (localPersonId: string) => {
     setActionLoading(localPersonId);
     try {
@@ -156,7 +328,7 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
         user_id: user!.id,
         connection_id: connectionId,
         local_person_id: localPersonId,
-        remote_person_uid: "00000000-0000-0000-0000-000000000000", // placeholder for excluded
+        remote_person_uid: "00000000-0000-0000-0000-000000000000",
         link_status: "excluded",
         link_source: "manual",
         is_enabled: false,
@@ -171,7 +343,6 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     }
   };
 
-  /* ── Include person (remove exclusion) ── */
   const includePerson = async (linkId: string) => {
     setActionLoading(linkId);
     try {
@@ -186,9 +357,9 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     }
   };
 
-  /* ── Create in Cherishly ── */
+  /* ── Create in Cherishly (remote) ── */
   const createRemote = async (localPersonId: string) => {
-    setActionLoading(`create-${localPersonId}`);
+    setActionLoading(`create-remote-${localPersonId}`);
     try {
       const { data, error } = await supabase.functions.invoke("sync-create-remote-person", {
         body: { connection_id: connectionId, local_person_id: localPersonId },
@@ -203,69 +374,26 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     }
   };
 
-  /* ── Suggest matches ── */
-  const suggestMatches = async () => {
-    if (remotePeople.length === 0) {
-      toast({ title: "Fetch remote people first", variant: "destructive" });
-      return;
-    }
-
-    const linkedRemoteUids = new Set(links.filter((l) => l.link_status === "linked").map((l) => l.remote_person_uid));
-    const linkedLocalIds = new Set(links.filter((l) => l.link_status === "linked").map((l) => l.local_person_id));
-    const excludedLocalIds = new Set(links.filter((l) => l.link_status === "excluded").map((l) => l.local_person_id));
-
-    const newCandidates: any[] = [];
-
-    for (const local of localPeople) {
-      if (linkedLocalIds.has(local.id) || excludedLocalIds.has(local.id)) continue;
-
-      for (const remote of remotePeople) {
-        if (linkedRemoteUids.has(remote.person_uid)) continue;
-
-        const { score, reasons } = nameSimilarity(local.name, remote.name);
-        if (score >= 0.6) {
-          newCandidates.push({
-            user_id: user!.id,
-            connection_id: connectionId,
-            local_person_id: local.id,
-            remote_person_uid: remote.person_uid,
-            remote_person_name: remote.name,
-            confidence: score,
-            reasons,
-            status: "open",
-          });
-        }
-      }
-    }
-
-    if (newCandidates.length === 0) {
-      toast({ title: "No new matches found" });
-      return;
-    }
-
-    // Clear old open candidates for this connection, then insert new
-    await supabase.from("sync_person_candidates" as any).delete()
-      .eq("connection_id", connectionId).eq("status", "open");
-
-    const { error } = await supabase.from("sync_person_candidates" as any).insert(newCandidates);
-    if (error) {
-      toast({ title: "Failed to save suggestions", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: `Found ${newCandidates.length} potential matches` });
+  /* ── Create in Temerio (local) ── */
+  const createLocal = async (remotePerson: RemotePerson) => {
+    setActionLoading(`create-local-${remotePerson.person_uid}`);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-create-local-person", {
+        body: {
+          connection_id: connectionId,
+          remote_person_uid: remotePerson.person_uid,
+          name: remotePerson.name,
+          relationship_label: remotePerson.relationship_label,
+        },
+      });
+      if (error) throw error;
+      toast({ title: `"${remotePerson.name}" created in Temerio and linked` });
       await fetchLocalData();
+    } catch (err: any) {
+      toast({ title: "Failed to create locally", description: err.message, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
     }
-  };
-
-  /* ── Accept / reject candidate ── */
-  const acceptCandidate = async (candidate: Candidate) => {
-    await linkPerson(candidate.local_person_id, candidate.remote_person_uid);
-    await supabase.from("sync_person_candidates" as any).update({ status: "accepted" }).eq("id", candidate.id);
-    setCandidates((prev) => prev.filter((c) => c.id !== candidate.id));
-  };
-
-  const rejectCandidate = async (candidateId: string) => {
-    await supabase.from("sync_person_candidates" as any).update({ status: "rejected" }).eq("id", candidateId);
-    setCandidates((prev) => prev.filter((c) => c.id !== candidateId));
   };
 
   /* ── Merge ── */
@@ -279,8 +407,7 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
       });
       if (error) throw error;
       toast({ title: `Merge complete — ${data.moments_moved} moments moved` });
-      setMergeA("");
-      setMergeB("");
+      setMergeA(""); setMergeB("");
       await fetchLocalData();
     } catch (err: any) {
       toast({ title: "Merge failed", description: err.message, variant: "destructive" });
@@ -289,13 +416,10 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     }
   };
 
-  /* ── Undo merge ── */
   const undoMerge = async (mergeLogId: string) => {
     setActionLoading(`undo-${mergeLogId}`);
     try {
-      const { error } = await supabase.functions.invoke("sync-undo-merge", {
-        body: { merge_log_id: mergeLogId },
-      });
+      const { error } = await supabase.functions.invoke("sync-undo-merge", { body: { merge_log_id: mergeLogId } });
       if (error) throw error;
       toast({ title: "Merge undone" });
       await fetchLocalData();
@@ -317,6 +441,14 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     () => new Set(links.filter((l) => l.link_status === "linked").map((l) => l.remote_person_uid)),
     [links],
   );
+  const linkedLocalIds = useMemo(
+    () => new Set(links.filter((l) => l.link_status === "linked").map((l) => l.local_person_id)),
+    [links],
+  );
+  const excludedLocalIds = useMemo(
+    () => new Set(links.filter((l) => l.link_status === "excluded").map((l) => l.local_person_id)),
+    [links],
+  );
 
   const getPersonStatus = (personId: string): "linked" | "excluded" | "unlinked" => {
     const link = linkMap.get(personId);
@@ -329,6 +461,27 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
   const getRemoteName = (remoteUid: string): string => {
     return remotePeople.find((r) => r.person_uid === remoteUid)?.name || remoteUid.slice(0, 8) + "…";
   };
+
+  // Suggestions: missing on remote (local people without links or candidates)
+  const missingOnRemote = useMemo(() => {
+    return localPeople.filter((p) =>
+      !linkedLocalIds.has(p.id) &&
+      !excludedLocalIds.has(p.id) &&
+      !candidates.some((c) => c.local_person_id === p.id)
+    );
+  }, [localPeople, linkedLocalIds, excludedLocalIds, candidates]);
+
+  // Suggestions: missing locally (remote people not linked)
+  const missingLocally = useMemo(() => {
+    const localUids = new Set(localPeople.map((p) => p.person_uid));
+    return remotePeople.filter((r) =>
+      !linkedRemoteUids.has(r.person_uid) &&
+      !localUids.has(r.person_uid) &&
+      !candidates.some((c) => c.remote_person_uid === r.person_uid)
+    );
+  }, [remotePeople, linkedRemoteUids, localPeople, candidates]);
+
+  const availableRemote = remotePeople.filter((r) => !linkedRemoteUids.has(r.person_uid));
 
   const filteredPeople = localPeople.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -345,7 +498,8 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
     return { linked, unlinked, excluded };
   }, [localPeople, linkMap]);
 
-  const availableRemote = remotePeople.filter((r) => !linkedRemoteUids.has(r.person_uid));
+  const totalSuggestions = candidates.length + missingOnRemote.length + missingLocally.length;
+  const isAutoRunning = fetchingRemote || suggesting;
 
   if (loading) {
     return (
@@ -370,26 +524,9 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
             We never auto-merge people. You stay in control.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Actions */}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={fetchRemotePeople} disabled={fetchingRemote}>
-              {fetchingRemote ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
-              Fetch from Cherishly
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={suggestMatches}
-              disabled={remotePeople.length === 0}
-            >
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-              Suggest Matches
-            </Button>
-          </div>
-
+        <CardContent className="space-y-3">
           {/* Stats */}
-          <div className="flex gap-3 text-sm">
+          <div className="flex flex-wrap gap-3 text-sm">
             <span className="text-muted-foreground">
               <span className="font-medium text-foreground">{stats.linked}</span> linked
             </span>
@@ -405,46 +542,218 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
               </span>
             )}
           </div>
+
+          {/* Auto-running indicator */}
+          {isAutoRunning && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              {fetchingRemote ? "Fetching people from Cherishly…" : "Building suggestions…"}
+            </div>
+          )}
+
+          {/* Last fetched */}
+          {lastFetched && !isAutoRunning && (
+            <p className="text-xs text-muted-foreground">
+              Last refreshed: {lastFetched.toLocaleString()}
+            </p>
+          )}
+
+          {/* Advanced actions */}
+          <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground">
+                <Settings2 className="h-3 w-3" />
+                Advanced
+                <ChevronDown className={`h-3 w-3 transition-transform ${advancedOpen ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" onClick={fetchRemotePeople} disabled={fetchingRemote}>
+                  {fetchingRemote ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}
+                  Fetch from Cherishly
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => buildSuggestions(localPeople, remotePeople, links)}
+                  disabled={remotePeople.length === 0 || suggesting}
+                >
+                  {suggesting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+                  Suggest Matches
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </CardContent>
       </Card>
 
-      {/* ── Suggested Matches ── */}
-      {candidates.length > 0 && (
-        <Card>
-          <CardHeader>
+      {/* ── Suggested Actions Panel ── */}
+      {totalSuggestions > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Sparkles className="h-4 w-4" /> Suggested Matches
+              <Sparkles className="h-4 w-4 text-primary" /> Suggested Actions
+              <Badge variant="secondary" className="text-xs">{totalSuggestions}</Badge>
             </CardTitle>
-            <CardDescription>
-              Review these suggested matches. Linking will sync moments both ways.
-            </CardDescription>
+            <CardDescription>Review and accept these suggestions. Nothing happens automatically.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-3">
-              {candidates.map((c) => {
-                const localName = localPeople.find((p) => p.id === c.local_person_id)?.name || "Unknown";
-                return (
-                  <li key={c.id} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm font-medium">{localName}</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="text-sm">{c.remote_person_name || c.remote_person_uid.slice(0, 8)}</span>
-                      <Badge variant="secondary" className="text-xs shrink-0">
-                        {Math.round(c.confidence * 100)}%
-                      </Badge>
-                    </div>
-                    <div className="flex gap-1.5 shrink-0">
-                      <Button size="sm" variant="default" onClick={() => acceptCandidate(c)} disabled={actionLoading === c.local_person_id}>
-                        <Check className="mr-1 h-3 w-3" /> Link
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => rejectCandidate(c.id)}>
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+          <CardContent className="space-y-5">
+            {/* A) Suggested Matches */}
+            {candidates.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-1.5">
+                  <Link2 className="h-3.5 w-3.5" /> Suggested Matches ({candidates.length})
+                </h4>
+                <ul className="space-y-2">
+                  {candidates.map((c) => {
+                    const localName = localPeople.find((p) => p.id === c.local_person_id)?.name || "Unknown";
+                    const isLoading = actionLoading === c.id;
+                    return (
+                      <li key={c.id} className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3">
+                        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                          <span className="text-sm font-medium">{localName}</span>
+                          <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="text-sm">{c.remote_person_name || c.remote_person_uid.slice(0, 8)}</span>
+                          <Badge variant="secondary" className="text-xs shrink-0">
+                            {Math.round(c.confidence * 100)}%
+                          </Badge>
+                          {c.reasons?.reason && (
+                            <span className="text-xs text-muted-foreground">{c.reasons.reason}</span>
+                          )}
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => acceptCandidate(c)} disabled={isLoading}>
+                            <Check className="mr-1 h-3 w-3" /> Link
+                          </Button>
+                          {/* Choose different remote person */}
+                          {availableRemote.length > 0 && (
+                            <Select onValueChange={(uid) => {
+                              // Link to chosen person instead and reject this candidate
+                              linkPerson(c.local_person_id, uid);
+                              rejectCandidate(c.id);
+                            }}>
+                              <SelectTrigger className="h-7 w-28 text-xs">
+                                <SelectValue placeholder="Other…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableRemote.map((r) => (
+                                  <SelectItem key={r.person_uid} value={r.person_uid} className="text-xs">{r.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => rejectCandidate(c.id)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* B) Missing on Remote (create in Cherishly) */}
+            {missingOnRemote.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-1.5">
+                  <Upload className="h-3.5 w-3.5" /> Create in Cherishly ({missingOnRemote.length})
+                </h4>
+                <ul className="space-y-2">
+                  {missingOnRemote.map((person) => {
+                    const isLoading = actionLoading === `create-remote-${person.id}`;
+                    return (
+                      <li key={person.id} className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium">{person.name}</span>
+                          <span className="text-xs text-muted-foreground">→ Create in Cherishly</span>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => createRemote(person.id)} disabled={isLoading}>
+                            <UserPlus className="mr-1 h-3 w-3" /> Create & Link
+                          </Button>
+                          {availableRemote.length > 0 && (
+                            <Select onValueChange={(uid) => linkPerson(person.id, uid)}>
+                              <SelectTrigger className="h-7 w-28 text-xs">
+                                <SelectValue placeholder="Link to…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableRemote.map((r) => (
+                                  <SelectItem key={r.person_uid} value={r.person_uid} className="text-xs">{r.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => excludePerson(person.id)} disabled={isLoading}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {/* C) Missing Locally (import from Cherishly) */}
+            {missingLocally.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-1.5">
+                  <Download className="h-3.5 w-3.5" /> Import from Cherishly ({missingLocally.length})
+                </h4>
+                <ul className="space-y-2">
+                  {missingLocally.map((remote) => {
+                    const isLoading = actionLoading === `create-local-${remote.person_uid}`;
+                    return (
+                      <li key={remote.person_uid} className="flex items-center justify-between gap-3 rounded-lg border bg-background p-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-sm font-medium">{remote.name}</span>
+                          <span className="text-xs text-muted-foreground">→ Create in Temerio</span>
+                        </div>
+                        <div className="flex gap-1.5 shrink-0">
+                          {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => createLocal(remote)} disabled={isLoading}>
+                            <UserPlus className="mr-1 h-3 w-3" /> Create & Link
+                          </Button>
+                          {/* Link to existing local person */}
+                          {localPeople.filter(p => !linkedLocalIds.has(p.id)).length > 0 && (
+                            <Select onValueChange={(localId) => linkPerson(localId, remote.person_uid)}>
+                              <SelectTrigger className="h-7 w-28 text-xs">
+                                <SelectValue placeholder="Link to…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {localPeople.filter(p => !linkedLocalIds.has(p.id)).map((p) => (
+                                  <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => {
+                            // Mark as ignored by not adding to suggestions — nothing to persist
+                            setRemotePeople(prev => prev.filter(r => r.person_uid !== remote.person_uid));
+                          }}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All mapped — no suggestions */}
+      {totalSuggestions === 0 && !isAutoRunning && remotePeople.length > 0 && (
+        <Card>
+          <CardContent className="py-6 text-center text-sm text-muted-foreground">
+            <Check className="h-5 w-5 mx-auto mb-1 text-primary" />
+            0 suggestions — everything is mapped
           </CardContent>
         </Card>
       )}
@@ -473,7 +782,7 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
               {filteredPeople.map((person) => {
                 const status = getPersonStatus(person.id);
                 const link = linkMap.get(person.id);
-                const isLoading = actionLoading === person.id || actionLoading === `create-${person.id}`;
+                const isLoading = actionLoading === person.id || actionLoading === `create-remote-${person.id}`;
 
                 return (
                   <li key={person.id} className="flex items-center justify-between gap-3 py-3">
@@ -501,7 +810,6 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
 
                       {status === "unlinked" && (
                         <>
-                          {/* Manual link dropdown */}
                           {availableRemote.length > 0 && (
                             <Select onValueChange={(uid) => linkPerson(person.id, uid)}>
                               <SelectTrigger className="h-8 w-32 text-xs">
@@ -594,7 +902,6 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
             </Button>
           </div>
 
-          {/* Recent merges with undo */}
           {mergeLogs.length > 0 && (
             <div className="space-y-2 pt-2 border-t">
               <p className="text-xs text-muted-foreground font-medium">Recent merges</p>
@@ -604,22 +911,14 @@ export function PeopleMappingSection({ connectionId }: { connectionId: string })
                     <span className="font-medium">{log.merge_payload?.merged_name}</span>
                     {" → "}
                     <span className="font-medium">{log.merge_payload?.primary_name}</span>
-                    <span className="text-muted-foreground ml-2">
-                      ({log.merge_payload?.moments_moved} moments)
-                    </span>
+                    <span className="text-muted-foreground ml-2">({log.merge_payload?.moments_moved} moments)</span>
                   </span>
                   <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 text-xs"
+                    size="sm" variant="ghost" className="h-6 text-xs"
                     onClick={() => undoMerge(log.id)}
                     disabled={actionLoading === `undo-${log.id}`}
                   >
-                    {actionLoading === `undo-${log.id}` ? (
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                    ) : (
-                      <Undo2 className="mr-1 h-3 w-3" />
-                    )}
+                    {actionLoading === `undo-${log.id}` ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Undo2 className="mr-1 h-3 w-3" />}
                     Undo
                   </Button>
                 </div>

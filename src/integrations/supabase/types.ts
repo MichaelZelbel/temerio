@@ -863,6 +863,44 @@ export type Database = {
           },
         ]
       }
+      sync_remote_people_cache: {
+        Row: {
+          connection_id: string
+          fetched_at: string
+          id: string
+          name: string
+          relationship_label: string | null
+          remote_person_uid: string
+          user_id: string
+        }
+        Insert: {
+          connection_id: string
+          fetched_at?: string
+          id?: string
+          name: string
+          relationship_label?: string | null
+          remote_person_uid: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string
+          fetched_at?: string
+          id?: string
+          name?: string
+          relationship_label?: string | null
+          remote_person_uid?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_remote_people_cache_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "sync_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
