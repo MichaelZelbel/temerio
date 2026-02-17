@@ -64,8 +64,11 @@ serve(async (req) => {
 
     // Notify remote side best-effort
     let remoteNotified = false;
-    if (conn.remote_base_url && conn.remote_connection_id) {
+    if (conn.remote_base_url) {
       try {
+        // Use remote_connection_id if available; otherwise send our own ID
+        // so the remote can look it up via its remote_connection_id field
+        const remoteId = conn.remote_connection_id || conn.id;
         const body = JSON.stringify({ reason: "user_disconnect" });
         const signature = await computeHmac(conn.shared_secret_hash, body);
 
@@ -75,7 +78,7 @@ serve(async (req) => {
           headers: {
             "Content-Type": "application/json",
             "x-sync-signature": signature,
-            "x-sync-connection-id": conn.remote_connection_id,
+            "x-sync-connection-id": remoteId,
           },
           body,
         });

@@ -23,12 +23,29 @@ serve(async (req) => {
     const bodyText = await req.text();
     const admin = createAdminClient();
 
-    // Look up connection — accept active OR already revoked for idempotency
-    const { data: conn, error: connErr } = await admin
+    // Look up connection by id first, then by remote_connection_id as fallback
+    let conn: { id: string; user_id: string; shared_secret_hash: string; status: string } | null = null;
+    let connErr: any = null;
+
+    const { data: byId, error: byIdErr } = await admin
       .from("sync_connections")
       .select("id, user_id, shared_secret_hash, status")
       .eq("id", connectionId)
-      .single();
+      .maybeSingle();
+
+    if (byId) {
+      conn = byId;
+    } else {
+      // Fallback: the sender may have sent their own connection ID,
+      // which we store as remote_connection_id on our side
+      const { data: byRemote, error: byRemoteErr } = await admin
+        .from("sync_connections")
+        .select("id, user_id, shared_secret_hash, status")
+        .eq("remote_connection_id", connectionId)
+        .maybeSingle();
+      conn = byRemote;
+      connErr = byRemoteErr;
+    }
 
     if (connErr || !conn) {
       return new Response(JSON.stringify({ error: "Connection not found" }), {
