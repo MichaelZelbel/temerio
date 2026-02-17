@@ -40,6 +40,24 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
 
   useEffect(() => { fetchConnections(); }, [fetchConnections]);
 
+  // Realtime: auto-refresh when remote side changes connection status
+  useEffect(() => {
+    const channel = supabase
+      .channel("sync-connections-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sync_connections" },
+        () => {
+          fetchConnections();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchConnections]);
+
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("sync_connections").delete().eq("id", id);
     if (error) {
