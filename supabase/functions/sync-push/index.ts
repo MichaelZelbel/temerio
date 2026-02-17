@@ -23,23 +23,30 @@ serve(async (req) => {
     const bodyText = await req.text();
     const admin = createAdminClient();
 
-    // Verify connection
-    const { data: conn, error: connErr } = await admin
+    // Iterate all active connections and verify HMAC to find the local one
+    // (x-sync-connection-id contains the remote app's ID, not ours)
+    const { data: activeConnections, error: connErr } = await admin
       .from("sync_connections")
       .select("id, user_id, shared_secret_hash, status")
-      .eq("id", connectionId)
-      .eq("status", "active")
-      .single();
+      .eq("status", "active");
 
-    if (connErr || !conn) {
-      return new Response(JSON.stringify({ error: "Connection not found or inactive" }), {
+    if (connErr || !activeConnections || activeConnections.length === 0) {
+      return new Response(JSON.stringify({ error: "No active connections" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const valid = await verifyHmac(conn.shared_secret_hash, bodyText, signature);
-    if (!valid) {
+    let conn: typeof activeConnections[number] | null = null;
+    for (const c of activeConnections) {
+      if (!c.shared_secret_hash) continue;
+      if (await verifyHmac(c.shared_secret_hash, bodyText, signature)) {
+        conn = c;
+        break;
+      }
+    }
+
+    if (!conn) {
       return new Response(JSON.stringify({ error: "Invalid signature" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
