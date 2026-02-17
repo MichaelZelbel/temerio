@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.sync-undo-merge]
 verify_jwt = false
+
+[functions.sync-revoke-connection]
+verify_jwt = false
+
+[functions.sync-disconnect]
+verify_jwt = false

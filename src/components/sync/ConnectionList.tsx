@@ -58,13 +58,27 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
     };
   }, [fetchConnections]);
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("sync_connections").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Connection removed" });
-      setConnections((prev) => prev.filter((c) => c.id !== id));
+  const [disconnecting, setDisconnecting] = useState<string | null>(null);
+
+  const handleDisconnect = async (id: string) => {
+    setDisconnecting(id);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-disconnect", {
+        body: { connection_id: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "Disconnected",
+        description: data?.remote_notified
+          ? "Cherishly has been notified."
+          : "Disconnected locally. Cherishly will be notified on next sync.",
+      });
+      fetchConnections();
+    } catch (err: any) {
+      toast({ title: "Disconnect failed", description: err.message, variant: "destructive" });
+    } finally {
+      setDisconnecting(null);
     }
   };
 
@@ -111,25 +125,27 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
                   <Badge variant={c.status === "active" ? "success" : "secondary"} className="text-xs">
                     {c.status}
                   </Badge>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remove connection?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will stop syncing with <strong>{c.remote_app}</strong>. You can re-pair later.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(c.id)}>Remove</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {c.status === "active" && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={disconnecting === c.id}>
+                          {disconnecting === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Disconnect from Cherishly?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will stop syncing with <strong>{c.remote_app}</strong> and notify them. You can re-pair later.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDisconnect(c.id)}>Disconnect</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </li>
             ))}
