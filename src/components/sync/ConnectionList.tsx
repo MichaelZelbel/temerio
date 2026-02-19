@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Loader2, RefreshCw, RotateCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -47,18 +47,35 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sync_connections" },
-        () => {
-          fetchConnections();
-        }
+        () => { fetchConnections(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [fetchConnections]);
 
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
+
+  const handleSyncNow = async (c: Connection) => {
+    setSyncing(c.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-run", {
+        body: { connection_id: c.id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const result = data as { pulled: number; applied: number; conflicts: number };
+      toast({
+        title: "Sync complete",
+        description: `Pulled ${result.pulled} events, applied ${result.applied}${result.conflicts > 0 ? `, ${result.conflicts} conflict${result.conflicts !== 1 ? "s" : ""}` : ""}`,
+      });
+    } catch (err: any) {
+      toast({ title: "Sync failed", description: err.message, variant: "destructive" });
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   const handleDisconnect = async (id: string) => {
     setDisconnecting(id);
@@ -126,25 +143,38 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
                     {c.status}
                   </Badge>
                   {c.status === "active" && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={disconnecting === c.id}>
-                          {disconnecting === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Disconnect from Cherishly?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will stop syncing with <strong>{c.remote_app}</strong> and notify them. You can re-pair later.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDisconnect(c.id)}>Disconnect</AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleSyncNow(c)}
+                        disabled={!!syncing}
+                        title="Sync Now"
+                      >
+                        {syncing === c.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <RotateCw className="h-4 w-4" />}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" disabled={disconnecting === c.id}>
+                            {disconnecting === c.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Disconnect from Cherishly?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will stop syncing with <strong>{c.remote_app}</strong> and notify them. You can re-pair later.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDisconnect(c.id)}>Disconnect</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
                   )}
                 </div>
               </li>
