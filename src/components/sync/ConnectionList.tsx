@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw, RotateCw, Trash2, Wifi, WifiOff } from "lucide-react";
+import { DatabaseBackup, Loader2, RefreshCw, RotateCw, Trash2, Wifi, WifiOff } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -56,6 +56,7 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
 
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState<string | null>(null);
 
   const handleSyncNow = async (c: Connection) => {
     setSyncing(c.id);
@@ -73,6 +74,38 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
     } catch (err: any) {
       toast({ title: "Sync failed", description: err.message, variant: "destructive" });
     } finally {
+      setSyncing(null);
+    }
+  };
+
+  const handleBackfill = async (c: Connection) => {
+    setBackfilling(c.id);
+    try {
+      // Step 1: backfill — queue all historical events into outbox
+      const { data: bfData, error: bfError } = await supabase.functions.invoke("sync-backfill", {
+        body: { connection_id: c.id },
+      });
+      if (bfError) throw bfError;
+      if (bfData?.error) throw new Error(bfData.error);
+      const { queued_people, queued_moments } = bfData as { queued_people: number; queued_moments: number };
+
+      // Step 2: sync-run — push queued events and pull remote changes
+      setSyncing(c.id);
+      const { data: runData, error: runError } = await supabase.functions.invoke("sync-run", {
+        body: { connection_id: c.id },
+      });
+      if (runError) throw runError;
+      if (runData?.error) throw new Error(runData.error);
+      const result = runData as { pulled: number; applied: number; conflicts: number };
+
+      toast({
+        title: "Sync history complete",
+        description: `Queued ${queued_people} people + ${queued_moments} moments. Pulled ${result.pulled}, applied ${result.applied}${result.conflicts > 0 ? `, ${result.conflicts} conflict${result.conflicts !== 1 ? "s" : ""}` : ""}.`,
+      });
+    } catch (err: any) {
+      toast({ title: "Backfill failed", description: err.message, variant: "destructive" });
+    } finally {
+      setBackfilling(null);
       setSyncing(null);
     }
   };
@@ -147,11 +180,22 @@ export function ConnectionList({ onSelect, onLoaded }: { onSelect?: (id: string)
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleBackfill(c)}
+                        disabled={!!backfilling || !!syncing}
+                        title="Sync History (backfill all past events)"
+                      >
+                        {backfilling === c.id
+                          ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : <DatabaseBackup className="h-4 w-4" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleSyncNow(c)}
-                        disabled={!!syncing}
+                        disabled={!!syncing || !!backfilling}
                         title="Sync Now"
                       >
-                        {syncing === c.id
+                        {syncing === c.id && !backfilling
                           ? <Loader2 className="h-4 w-4 animate-spin" />
                           : <RotateCw className="h-4 w-4" />}
                       </Button>
