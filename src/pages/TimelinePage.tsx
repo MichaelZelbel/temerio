@@ -218,7 +218,7 @@ const TimelinePage = () => {
               </Button>
             </CollapsibleTrigger>
           </Collapsible>
-          <AddEventDialog people={people} documents={documents} onCreated={fetchData} />
+          <AddEventDialog people={people} documents={documents} onCreated={fetchData} onDocumentsChanged={fetchData} />
         </div>
       </div>
 
@@ -280,7 +280,7 @@ const TimelinePage = () => {
           <p className="text-lg font-medium">No moments yet</p>
           <p className="text-sm">Upload documents or add moments manually to build your timeline.</p>
           <div className="flex justify-center gap-3 pt-2">
-            <AddEventDialog people={people} documents={documents} onCreated={fetchData} />
+            <AddEventDialog people={people} documents={documents} onCreated={fetchData} onDocumentsChanged={fetchData} />
             <Button size="sm" variant="outline" asChild>
               <a href="/upload"><Upload className="mr-2 h-4 w-4" /> Upload documents</a>
             </Button>
@@ -411,6 +411,7 @@ const TimelinePage = () => {
         people={people}
         documents={documents}
         onCreated={fetchData}
+        onDocumentsChanged={fetchData}
         editEvent={editMomentData}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}

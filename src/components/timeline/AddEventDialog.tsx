@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2, Sparkles, Send, RotateCcw, Pencil, FileText } from "lucide-react";
+import { Plus, Loader2, Sparkles, Send, RotateCcw, Pencil } from "lucide-react";
 import ImportanceSlider from "@/components/timeline/ImportanceSlider";
+import DocumentAttachment from "@/components/timeline/DocumentAttachment";
+import type { DocOption } from "@/components/timeline/DocumentAttachment";
 import { format } from "date-fns";
 
 interface Person {
@@ -47,15 +49,11 @@ interface EditMomentData {
   documentIds?: string[];
 }
 
-interface DocOption {
-  id: string;
-  file_name: string;
-}
-
 interface AddEventDialogProps {
   people: Person[];
   documents?: DocOption[];
   onCreated: () => void;
+  onDocumentsChanged?: () => void;
   editEvent?: EditMomentData | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -63,7 +61,7 @@ interface AddEventDialogProps {
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 
-const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: controlledOpen, onOpenChange }: AddEventDialogProps) => {
+const AddEventDialog = ({ people, documents = [], onCreated, onDocumentsChanged, editEvent, open: controlledOpen, onOpenChange }: AddEventDialogProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const isControlled = controlledOpen !== undefined;
@@ -448,29 +446,13 @@ const AddEventDialog = ({ people, documents = [], onCreated, editEvent, open: co
           </div>
         )}
 
-        {/* Document picker */}
-        {documents.length > 0 && (
-          <div className="space-y-2">
-            <Label className="text-xs flex items-center gap-1.5">
-              <FileText className="h-3.5 w-3.5" /> Linked Documents
-            </Label>
-            <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-              {documents.map((doc) => (
-                <label key={doc.id} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                  <Checkbox
-                    checked={selectedDocIds.includes(doc.id)}
-                    onCheckedChange={(checked) => {
-                      setSelectedDocIds((prev) =>
-                        checked ? [...prev, doc.id] : prev.filter((id) => id !== doc.id)
-                      );
-                    }}
-                  />
-                  {doc.file_name}
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Document attachment */}
+        <DocumentAttachment
+          documents={documents}
+          selectedDocIds={selectedDocIds}
+          onSelectedChange={setSelectedDocIds}
+          onDocumentsChanged={onDocumentsChanged || (() => {})}
+        />
       </div>
 
       <DialogFooter>
