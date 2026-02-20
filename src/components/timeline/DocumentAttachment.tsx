@@ -62,14 +62,6 @@ const DocumentAttachment = ({
 
       const newIds: string[] = [];
       for (const file of Array.from(files)) {
-        if (file.type !== "application/pdf") {
-          toast({
-            title: `Skipped ${file.name}`,
-            description: "Only PDFs are accepted.",
-            variant: "destructive",
-          });
-          continue;
-        }
         const storagePath = `${user.id}/${Date.now()}_${file.name}`;
         const { error: uploadErr } = await supabase.storage
           .from("documents")
@@ -88,7 +80,7 @@ const DocumentAttachment = ({
             user_id: user.id,
             storage_path: storagePath,
             file_name: file.name,
-            mime_type: "application/pdf",
+            mime_type: file.type || "application/octet-stream",
             status: "uploaded",
           })
           .select("id")
@@ -212,10 +204,9 @@ const DocumentAttachment = ({
             ) : (
               <Upload className="mr-1.5 h-3.5 w-3.5" />
             )}
-            Upload PDF
+            Upload file
             <input
               type="file"
-              accept=".pdf"
               multiple
               className="hidden"
               onChange={handleFileUpload}

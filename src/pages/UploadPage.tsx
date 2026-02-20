@@ -115,10 +115,6 @@ const UploadPage = () => {
     setUploading(true);
 
     for (const file of Array.from(files)) {
-      if (file.type !== "application/pdf") {
-        toast({ title: `Skipped ${file.name}`, description: "Only PDFs are accepted.", variant: "destructive" });
-        continue;
-      }
       const storagePath = `${user.id}/${Date.now()}_${file.name}`;
       const { error: uploadErr } = await supabase.storage.from("documents").upload(storagePath, file);
       if (uploadErr) {
@@ -129,7 +125,7 @@ const UploadPage = () => {
         user_id: user.id,
         storage_path: storagePath,
         file_name: file.name,
-        mime_type: "application/pdf",
+        mime_type: file.type || "application/octet-stream",
         status: "uploaded",
         primary_person_id: selectedPerson || null,
       });
@@ -250,7 +246,7 @@ const UploadPage = () => {
     <div className="space-y-6">
       <div>
         <h3>Upload Documents</h3>
-        <p className="text-sm text-muted-foreground">Upload PDFs to extract timeline events.</p>
+        <p className="text-sm text-muted-foreground">Upload documents to extract timeline events.</p>
       </div>
 
       {/* Step 1: Select person */}
@@ -296,7 +292,7 @@ const UploadPage = () => {
       {/* Step 2: Upload */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Step 2: Upload PDFs</CardTitle>
+          <CardTitle className="text-base">Step 2: Upload Files</CardTitle>
         </CardHeader>
         <CardContent>
           <label className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 cursor-pointer hover:border-primary/50 transition-colors">
@@ -305,10 +301,10 @@ const UploadPage = () => {
             ) : (
               <>
                 <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                <span className="text-sm text-muted-foreground">Click to select PDF files</span>
+                <span className="text-sm text-muted-foreground">Click to select files</span>
               </>
             )}
-            <input type="file" accept=".pdf" multiple className="hidden" onChange={handleFileUpload} disabled={uploading} />
+            <input type="file" multiple className="hidden" onChange={handleFileUpload} disabled={uploading} />
           </label>
         </CardContent>
       </Card>
