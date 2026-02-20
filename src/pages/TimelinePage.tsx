@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload, Plus, Pencil } from "lucide-react";
+import { Filter, ChevronDown, Calendar, FileText, Users, CheckCircle2, Loader2, Upload, Plus, Pencil, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
 import AddEventDialog from "@/components/timeline/AddEventDialog";
 
@@ -39,7 +39,7 @@ interface TimelineMoment {
     id: string;
     snippet_en: string | null;
     page_number: number | null;
-    document?: { file_name: string } | null;
+    document?: { file_name: string; storage_path: string; mime_type: string } | null;
   }[];
 }
 
@@ -152,15 +152,15 @@ const TimelinePage = () => {
     const participants = people.filter((p) => participantIds.includes(p.id));
 
     const docIds = [...new Set(((provRes.data || []) as any[]).map((p) => p.document_id).filter(Boolean))] as string[];
-    let docMap: Record<string, string> = {};
+    let docMap: Record<string, { file_name: string; storage_path: string; mime_type: string }> = {};
     if (docIds.length > 0) {
-      const { data: docs } = await supabase.from("documents").select("id, file_name").in("id", docIds);
-      for (const d of docs || []) docMap[d.id] = d.file_name;
+      const { data: docs } = await supabase.from("documents").select("id, file_name, storage_path, mime_type").in("id", docIds);
+      for (const d of docs || []) docMap[d.id] = { file_name: d.file_name, storage_path: d.storage_path, mime_type: d.mime_type };
     }
 
     const provWithDocs = ((provRes.data || []) as any[]).map((prov) => ({
       ...prov,
-      document: prov.document_id ? { file_name: docMap[prov.document_id] || "Unknown" } : null,
+      document: prov.document_id ? (docMap[prov.document_id] || { file_name: "Unknown", storage_path: "", mime_type: "" }) : null,
     }));
 
     setSelectedMoment({ ...moment, participants, provenance: provWithDocs });
@@ -383,13 +383,41 @@ const TimelinePage = () => {
 
                 {selectedMoment.provenance && selectedMoment.provenance.length > 0 && (
                   <div>
-                    <h6 className="mb-2 flex items-center gap-2"><FileText className="h-4 w-4" /> Provenance</h6>
+                    <h6 className="mb-2 flex items-center gap-2"><FileText className="h-4 w-4" /> Documents</h6>
                     <div className="space-y-2">
                       {selectedMoment.provenance.map((prov) => (
                         <Card key={prov.id}>
-                          <CardContent className="py-2 px-3 text-xs">
+                          <CardContent className="py-2 px-3 text-xs space-y-1.5">
                             {prov.document && (
-                              <p className="font-medium">{prov.document.file_name}{prov.page_number ? `, p.${prov.page_number}` : ""}</p>
+                              <>
+                                <p className="font-medium">{prov.document.file_name}{prov.page_number ? `, p.${prov.page_number}` : ""}</p>
+                                <div className="flex gap-2">
+                                  {prov.document.mime_type?.startsWith("image/") && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 text-xs px-2"
+                                      onClick={async () => {
+                                        const { data } = await supabase.storage.from("documents").createSignedUrl(prov.document!.storage_path, 300);
+                                        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                                      }}
+                                    >
+                                      <Eye className="mr-1 h-3 w-3" /> View
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 text-xs px-2"
+                                    onClick={async () => {
+                                      const { data } = await supabase.storage.from("documents").createSignedUrl(prov.document!.storage_path, 300, { download: true });
+                                      if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+                                    }}
+                                  >
+                                    <Download className="mr-1 h-3 w-3" /> Download
+                                  </Button>
+                                </div>
+                              </>
                             )}
                             {prov.snippet_en && (
                               <p className="text-muted-foreground mt-1 italic">"{prov.snippet_en}"</p>
