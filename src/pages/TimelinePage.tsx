@@ -387,40 +387,45 @@ const TimelinePage = () => {
                     <div className="space-y-2">
                       {selectedMoment.provenance.map((prov) => (
                         <Card key={prov.id}>
-                          <CardContent className="py-2 px-3 text-xs space-y-1.5">
+                          <CardContent className="py-3 px-3 text-sm space-y-2">
                             {prov.document && (
                               <>
-                                <p className="font-medium">{prov.document.file_name}{prov.page_number ? `, p.${prov.page_number}` : ""}</p>
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                                  <span className="font-medium truncate">{prov.document.file_name}</span>
+                                  {prov.page_number && <span className="text-xs text-muted-foreground shrink-0">p.{prov.page_number}</span>}
+                                </div>
                                 <div className="flex gap-2">
-                                  {prov.document.mime_type?.startsWith("image/") && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-xs px-2"
-                                      onClick={async () => {
-                                        const { data } = await supabase.storage.from("documents").createSignedUrl(prov.document!.storage_path, 300);
-                                        if (data?.signedUrl) window.open(data.signedUrl, "_blank");
-                                      }}
-                                    >
-                                      <Eye className="mr-1 h-3 w-3" /> View
-                                    </Button>
-                                  )}
                                   <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="h-6 text-xs px-2"
                                     onClick={async () => {
-                                      const { data } = await supabase.storage.from("documents").createSignedUrl(prov.document!.storage_path, 300, { download: true });
+                                      const { data } = await supabase.storage.from("documents").createSignedUrl(prov.document!.storage_path, 300);
                                       if (data?.signedUrl) window.open(data.signedUrl, "_blank");
                                     }}
                                   >
-                                    <Download className="mr-1 h-3 w-3" /> Download
+                                    <Eye className="mr-1.5 h-3.5 w-3.5" /> View
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={async () => {
+                                      const { data } = await supabase.storage.from("documents").createSignedUrl(prov.document!.storage_path, 300, { download: prov.document!.file_name });
+                                      if (data?.signedUrl) {
+                                        const a = document.createElement("a");
+                                        a.href = data.signedUrl;
+                                        a.download = prov.document!.file_name;
+                                        a.click();
+                                      }
+                                    }}
+                                  >
+                                    <Download className="mr-1.5 h-3.5 w-3.5" /> Download
                                   </Button>
                                 </div>
                               </>
                             )}
                             {prov.snippet_en && (
-                              <p className="text-muted-foreground mt-1 italic">"{prov.snippet_en}"</p>
+                              <p className="text-muted-foreground text-xs italic">"{prov.snippet_en}"</p>
                             )}
                           </CardContent>
                         </Card>
