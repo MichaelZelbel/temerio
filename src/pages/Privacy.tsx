@@ -5,7 +5,7 @@ const toc = [
   { id: "info-collect", label: "Information We Collect" },
   { id: "how-use", label: "How We Use Your Information" },
   { id: "data-storage", label: "Data Storage and Security" },
-  { id: "third-party", label: "Third-Party Services" },
+  { id: "third-party", label: "Data Processors" },
   { id: "your-rights", label: "Your Rights" },
   { id: "cookies", label: "Cookies" },
   { id: "contact", label: "Contact Information" },
@@ -63,14 +63,84 @@ const Privacy = () => {
     </section>
 
     <section>
-      <h2 id="third-party">4. Third-Party Services</h2>
-      <p>We use the following third-party services that may collect or process your data:</p>
-      <ul>
-        <li><strong>Supabase</strong> — Database hosting, authentication, and file storage</li>
-        <li><strong>Stripe</strong> — Payment processing and subscription management</li>
-        <li><strong>Analytics providers</strong> — Anonymous usage analytics to improve our product</li>
-      </ul>
-      <p>Each third-party service operates under their own privacy policy. We encourage you to review their policies.</p>
+      <h2 id="third-party">4. Third-Party Data Processing / Data Processors</h2>
+      <p>
+        In accordance with Article 28 of the General Data Protection Regulation (GDPR), we engage
+        carefully selected third-party service providers ("data processors") to help us operate our
+        platform and deliver our services. Each processor is contractually bound by a Data Processing
+        Agreement (DPA) that ensures an adequate level of data protection consistent with applicable
+        EU/EEA data protection law.
+      </p>
+      <p>The following processors currently process personal data on our behalf:</p>
+
+      <h3>Microsoft Azure (incl. Azure OpenAI)</h3>
+      <p>
+        <strong>Role:</strong> Cloud infrastructure, hosting, and AI inference services.
+        Microsoft Azure provides the primary compute, storage, and networking infrastructure on which
+        parts of our platform operate, including Azure OpenAI deployments used for AI-powered features.
+        Microsoft acts as a data processor under GDPR Article 28.
+      </p>
+      <p>
+        <a href="https://www.microsoft.com/licensing/docs/view/Microsoft-Products-and-Services-Data-Protection-Addendum-DPA" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Microsoft Data Protection Addendum (DPA)</a>
+      </p>
+
+      <h3>Supabase</h3>
+      <p>
+        <strong>Role:</strong> Database hosting, authentication, and backend-as-a-service infrastructure.
+        Supabase provides our primary database, user authentication services, and file storage.
+        Supabase acts as a data processor under GDPR Article 28.
+      </p>
+      <p>
+        <a href="https://supabase.com/downloads/docs/Supabase%2BDPA%2B250314.pdf" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Supabase GDPR Data Processing Addendum (DPA)</a>
+      </p>
+
+      <h3>Lovable</h3>
+      <p>
+        <strong>Role:</strong> Website hosting and deployment platform.
+        Lovable provides the hosting infrastructure and deployment pipeline for our web application.
+        Lovable acts as a data processor under GDPR Article 28.
+      </p>
+      <p>
+        <a href="https://lovable.dev/data-processing-agreement" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Lovable Data Processing Agreement (DPA)</a>
+      </p>
+
+      <h3>Hostinger</h3>
+      <p>
+        <strong>Role:</strong> Website hosting and domain infrastructure.
+        Hostinger provides supplementary hosting and domain management services.
+        Hostinger acts as a data processor under GDPR Article 28.
+      </p>
+      <p>
+        <a href="https://www.hostinger.com/legal/dpa" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Hostinger Data Processing Agreement (DPA)</a>
+      </p>
+
+      <h3>Resend</h3>
+      <p>
+        <strong>Role:</strong> Transactional email delivery service.
+        Resend handles the delivery of transactional emails such as account verification, password
+        resets, and system notifications on our behalf.
+        Resend acts as a data processor under GDPR Article 28.
+      </p>
+      <p>
+        <a href="https://resend.com/legal/dpa" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Resend Data Processing Agreement (DPA)</a>
+      </p>
+
+      <h3>OpenAI</h3>
+      <p>
+        <strong>Role:</strong> AI inference provider (fallback).
+        OpenAI is used as an alternative AI inference provider for certain AI-powered features
+        when the primary provider is unavailable.
+        OpenAI acts as a data processor under GDPR Article 28.
+      </p>
+      <p>
+        <a href="https://openai.com/policies/data-processing-addendum/" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">OpenAI Data Processing Addendum (DPA)</a>
+      </p>
+
+      <p>
+        We regularly review and update our list of data processors. If we engage new processors or
+        discontinue existing ones, we will update this section accordingly. You may contact us at any
+        time to request further information about the processors we use or the safeguards we have in place.
+      </p>
     </section>
 
     <section>
